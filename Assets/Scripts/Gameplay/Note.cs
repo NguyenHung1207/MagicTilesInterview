@@ -13,7 +13,7 @@ public class Note : MonoBehaviour
         songConductor = conductor;
         spawnPosition = startPosition;
         hitPosition = targetPosition;
-        spawnTime = songConductor.SongTime;
+        spawnTime = noteSpawnTime;
         hitTime = noteHitTime;
         transform.position = spawnPosition;
     }
