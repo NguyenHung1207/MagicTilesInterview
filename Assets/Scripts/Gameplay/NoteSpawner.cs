@@ -7,7 +7,7 @@ public class NoteSpawner : MonoBehaviour
     [SerializeField] private double travelTime = 2.0;
 
     [SerializeField] private GameObject notePrefab;
-    [SerializeField] private Transform[] laneSpawnPoints;
+    [SerializeField] private LaneView[] lanes;
 
     private int nextNoteIndex;
 
@@ -25,6 +25,9 @@ public class NoteSpawner : MonoBehaviour
                 break;
             }
 
+            LaneView lane = lanes[nextNote.lane];
+            Instantiate(notePrefab, lane.SpawnPoint.position, Quaternion.identity);
+            
             Debug.Log($"Spawn note {nextNoteIndex} | Lane {nextNote.lane} | Hit {nextNote.hitTime:F3}s", this);
             nextNoteIndex++;
         }
