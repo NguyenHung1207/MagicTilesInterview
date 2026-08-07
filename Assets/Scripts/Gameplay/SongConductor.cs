@@ -30,11 +30,16 @@ public class SongConductor : MonoBehaviour
 
     void Start()
     {
+        if (musicSource == null)
+        {
+            Debug.LogError("SongConductor requires an AudioSource reference.", this);
+            return;
+        }
         StartSong();
     }
 
     void Update()
     {
-        Debug.Log($"Song Time: {SongTime}");
+
     }
 }
