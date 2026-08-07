@@ -6,6 +6,9 @@ public class NoteSpawner : MonoBehaviour
     [SerializeField] private MidiChartLoader chartLoader;
     [SerializeField] private double travelTime = 2.0;
 
+    [SerializeField] private GameObject notePrefab;
+    [SerializeField] private Transform[] laneSpawnPoints;
+
     private int nextNoteIndex;
 
     private void Update()
@@ -21,7 +24,7 @@ public class NoteSpawner : MonoBehaviour
             {
                 break;
             }
-            
+
             Debug.Log($"Spawn note {nextNoteIndex} | Lane {nextNote.lane} | Hit {nextNote.hitTime:F3}s", this);
             nextNoteIndex++;
         }
