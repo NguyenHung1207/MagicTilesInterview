@@ -2,7 +2,6 @@ using UnityEngine;
 using Melanchall.DryWetMidi.Core;
 using System.IO;
 using Melanchall.DryWetMidi.Interaction;
-using System.Linq;
 using System.Collections.Generic;
 
 public class MidiChartLoader : MonoBehaviour
@@ -10,7 +9,7 @@ public class MidiChartLoader : MonoBehaviour
     [SerializeField] private TextAsset midiAsset;
     private readonly List<NoteData> noteDataList = new();
     public IReadOnlyList<NoteData> Notes => noteDataList;
-    
+
     private void Start()
     {
         if (midiAsset == null)
