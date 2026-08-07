@@ -6,7 +6,7 @@ public class NoteSpawner : MonoBehaviour
     [SerializeField] private MidiChartLoader chartLoader;
     [SerializeField] private double travelTime = 2.0;
 
-    [SerializeField] private GameObject notePrefab;
+    [SerializeField] private Note notePrefab;
     [SerializeField] private LaneView[] lanes;
 
     private int nextNoteIndex;
@@ -26,7 +26,8 @@ public class NoteSpawner : MonoBehaviour
             }
 
             LaneView lane = lanes[nextNote.lane];
-            Instantiate(notePrefab, lane.SpawnPoint.position, Quaternion.identity);
+            Note spawnedNote = Instantiate(notePrefab, lane.SpawnPoint.position, Quaternion.identity);
+            spawnedNote.Initialize(songConductor, lane.SpawnPoint.position, lane.HitPoint.position, spawnTime, nextNote.hitTime);
             
             Debug.Log($"Spawn note {nextNoteIndex} | Lane {nextNote.lane} | Hit {nextNote.hitTime:F3}s", this);
             nextNoteIndex++;

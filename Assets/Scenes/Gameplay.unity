@@ -265,7 +265,7 @@ MonoBehaviour:
   songConductor: {fileID: 443467383}
   chartLoader: {fileID: 1854647436}
   travelTime: 2
-  notePrefab: {fileID: 374102915384486078, guid: 09775a7eebace7a409eb44ff4b041886, type: 3}
+  notePrefab: {fileID: -3574191397748433852, guid: 09775a7eebace7a409eb44ff4b041886, type: 3}
   lanes:
   - {fileID: 221769588}
   - {fileID: 1675649208}
