@@ -8,11 +8,12 @@ public class Note : MonoBehaviour
     private Vector3 hitPosition;
     private double spawnTime;
     private double hitTime;
-
+    private int laneIndex;
+    public static event Action<int, HitJudgement> HitSucceeded;
     private const double MissDelay = 0.15;
     private bool isResolved;
     public static event Action<HitJudgement> Judged;
-    public void Initialize(SongConductor conductor, Vector3 startPosition, Vector3 targetPosition, double noteSpawnTime, double noteHitTime)
+    public void Initialize(SongConductor conductor, Vector3 startPosition, Vector3 targetPosition, double noteSpawnTime, double noteHitTime, int laneIndex)
     {
         songConductor = conductor;
         spawnPosition = startPosition;
@@ -20,6 +21,7 @@ public class Note : MonoBehaviour
         spawnTime = noteSpawnTime;
         hitTime = noteHitTime;
         transform.position = spawnPosition;
+        this.laneIndex = laneIndex;
     }
 
     private void Update()
@@ -50,7 +52,9 @@ public class Note : MonoBehaviour
         isResolved = true;
         Debug.Log(judgement, this);
         Judged?.Invoke(judgement);
+        HitSucceeded?.Invoke(laneIndex, judgement);
         Destroy(gameObject);
+
         return judgement;
     }
 

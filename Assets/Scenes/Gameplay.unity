@@ -2787,6 +2787,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1710483520}
+  - component: {fileID: 1710483521}
   m_Layer: 0
   m_Name: LaneFeedback
   m_TagString: Untagged
@@ -2813,6 +2814,25 @@ Transform:
   - {fileID: 1508533112}
   m_Father: {fileID: 1991870105}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1710483521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710483519}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a78ef042097d77468ea828cab8e2282, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  laneFlashes:
+  - {fileID: 1871236964}
+  - {fileID: 1438588429}
+  - {fileID: 643782308}
+  - {fileID: 1508533113}
+  flashDuration: 0.15
+  flashAlpha: 0.55
 --- !u!1 &1731835288
 GameObject:
   m_ObjectHideFlags: 0

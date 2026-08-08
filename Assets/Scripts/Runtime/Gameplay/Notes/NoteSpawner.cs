@@ -66,7 +66,7 @@ public class NoteSpawner : MonoBehaviour
 
             LaneView lane = lanes[nextNote.lane];
             Note spawnedNote = Instantiate(notePrefab, lane.SpawnPoint.position, Quaternion.identity);
-            spawnedNote.Initialize(songConductor, lane.SpawnPoint.position, lane.HitPoint.position, spawnTime, nextNote.hitTime);
+            spawnedNote.Initialize(songConductor, lane.SpawnPoint.position, lane.HitPoint.position, spawnTime, nextNote.hitTime, nextNote.lane);
             
             Debug.Log($"Spawn note {nextNoteIndex} | Lane {nextNote.lane} | Hit {nextNote.hitTime:F3}s", this);
             nextNoteIndex++;
