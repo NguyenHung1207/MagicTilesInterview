@@ -23,6 +23,12 @@ public class JsonChartLoader : MonoBehaviour
             return;
         }
 
+        if (chartData.notes.Count == 0)
+        {
+            Debug.LogError("Loaded chart contains no gameplay notes.", this);
+            return;
+        }
+
         notes.Clear();
         notes.AddRange(chartData.notes);
         Debug.Log($"Loaded {notes.Count} gameplay notes from JSON.", this);

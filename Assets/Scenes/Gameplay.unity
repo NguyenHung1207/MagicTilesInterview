@@ -726,6 +726,7 @@ GameObject:
   - component: {fileID: 1337424186}
   - component: {fileID: 1337424187}
   - component: {fileID: 1337424188}
+  - component: {fileID: 1337424189}
   m_Layer: 0
   m_Name: GameplaySystems
   m_TagString: Untagged
@@ -773,6 +774,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f00a91e495ea035459cd58463bc30901, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1337424189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1337424185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82fcc42aef6b5a445a302305c5d46b31, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  songConductor: {fileID: 443467383}
+  noteSpawner: {fileID: 345622418}
+  inputController: {fileID: 1337424187}
 --- !u!1 &1358475885
 GameObject:
   m_ObjectHideFlags: 0
@@ -992,7 +1008,7 @@ GameObject:
   - component: {fileID: 1854647435}
   - component: {fileID: 1854647437}
   m_Layer: 0
-  m_Name: MidiChartLoader
+  m_Name: JsonChartLoader
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

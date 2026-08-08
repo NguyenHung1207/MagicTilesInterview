@@ -7,6 +7,8 @@ public class SongConductor : MonoBehaviour
     private double songStartDspTime;
 
     private bool isSongScheduled;
+    private bool isSongStopped;
+    private double stoppedSongTime;
 
     public double SongTime
     {
@@ -15,6 +17,11 @@ public class SongConductor : MonoBehaviour
             if (!isSongScheduled)
             {
                 return 0.0;
+            }
+
+            if (isSongStopped)
+            {
+                return stoppedSongTime;
             }
 
             return AudioSettings.dspTime - songStartDspTime;
@@ -26,6 +33,17 @@ public class SongConductor : MonoBehaviour
         songStartDspTime = AudioSettings.dspTime + startDelay;
         musicSource.PlayScheduled(songStartDspTime);
         isSongScheduled = true;
+    }
+
+    public void StopSong()
+    {
+        if (!isSongScheduled || isSongStopped)
+        {
+            return;
+        }
+        stoppedSongTime = SongTime;
+        isSongStopped = true;
+        musicSource.Stop();
     }
 
     void Start()

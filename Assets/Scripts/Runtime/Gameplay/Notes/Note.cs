@@ -53,4 +53,15 @@ public class Note : MonoBehaviour
         Destroy(gameObject);
         return judgement;
     }
+
+    public void Cancel()
+    {
+        if (isResolved)
+        {
+            return;
+        }
+
+        isResolved = true;
+        Destroy(gameObject);
+    }
 }

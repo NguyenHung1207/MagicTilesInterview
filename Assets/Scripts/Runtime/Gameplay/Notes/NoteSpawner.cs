@@ -11,6 +11,44 @@ public class NoteSpawner : MonoBehaviour
 
     private int nextNoteIndex;
 
+    private void Awake()
+    {
+        if (songConductor == null || chartLoader == null || notePrefab == null)
+        {
+            Debug.LogError(
+                "NoteSpawner requires SongConductor, JsonChartLoader, and Note prefab references.",
+                this);
+            enabled = false;
+            return;
+        }
+
+        if (travelTime <= 0.0)
+        {
+            Debug.LogError("NoteSpawner travelTime must be greater than zero.", this);
+            enabled = false;
+            return;
+        }
+
+        if (lanes == null || lanes.Length != 4)
+        {
+            Debug.LogError("NoteSpawner requires exactly four LaneView references.", this);
+            enabled = false;
+            return;
+        }
+
+        foreach (LaneView lane in lanes)
+        {
+            if (lane != null)
+            {
+                continue;
+            }
+
+            Debug.LogError("NoteSpawner lane references cannot contain null entries.", this);
+            enabled = false;
+            return;
+        }
+    }
+
     private void Update()
     {
         double currentSongTime = songConductor.SongTime;
