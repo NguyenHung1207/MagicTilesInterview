@@ -1,9 +1,11 @@
 using UnityEngine;
+using System;
 
 public class NoteInputController : MonoBehaviour
 {
     [SerializeField] private Camera gameplayCamera;
 
+    public static event Action FailedInput;
     private void Awake()
     {
         if (gameplayCamera == null)
@@ -39,12 +41,14 @@ public class NoteInputController : MonoBehaviour
         Collider2D hit = Physics2D.OverlapPoint(worldPosition);
         if (hit == null)
         {
+            FailedInput?.Invoke();
             return;
         }
         Note note = hit.GetComponent<Note>();
 
         if (note == null)
         {
+            FailedInput?.Invoke();
             return;
         }
 

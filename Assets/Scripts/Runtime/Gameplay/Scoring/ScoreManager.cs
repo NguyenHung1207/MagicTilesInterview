@@ -24,19 +24,21 @@ public class ScoreManager : MonoBehaviour
         {
             case HitJudgement.Perfect:
                 points = 100;
+                Combo++;
                 break;
 
             case HitJudgement.Cool:
                 points = 75;
+                Combo = 0;
                 break;
 
             case HitJudgement.Good:
                 points = 50;
+                Combo = 0;
                 break;
         }
 
         Score += points;
-        Combo++;
     }
 
     private void OnEnable()
