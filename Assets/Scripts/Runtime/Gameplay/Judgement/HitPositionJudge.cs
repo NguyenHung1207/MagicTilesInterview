@@ -3,7 +3,7 @@ using UnityEngine;
 public static class HitPositionJudge
 {
     public const float PerfectDistance = 0.35f;
-    public const float CoolDistance = 0.9f;
+    public const float GreatDistance = 0.9f;
 
     public static HitJudgement Evaluate(float noteY, float hitY)
     {
@@ -12,9 +12,9 @@ public static class HitPositionJudge
         {
             return HitJudgement.Perfect;
         }
-        if (distance <= CoolDistance)
+        if (distance <= GreatDistance)
         {
-            return HitJudgement.Cool;
+            return HitJudgement.Great;
         }
         return HitJudgement.Good;
     }

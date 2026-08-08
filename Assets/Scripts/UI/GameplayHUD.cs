@@ -67,7 +67,7 @@ public class GameplayHUD : MonoBehaviour
         judgementText.text = judgement switch
         {
             HitJudgement.Perfect => "PERFECT",
-            HitJudgement.Cool => "COOL",
+            HitJudgement.Great => "GREAT",
             HitJudgement.Good => "GOOD",
             _ => string.Empty
         };

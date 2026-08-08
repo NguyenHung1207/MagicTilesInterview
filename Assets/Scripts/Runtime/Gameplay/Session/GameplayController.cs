@@ -72,7 +72,7 @@ public class GameplayController : MonoBehaviour
             return;
         }
 
-        if (judgement == HitJudgement.Perfect || judgement == HitJudgement.Cool || judgement == HitJudgement.Good)
+        if (judgement == HitJudgement.Perfect || judgement == HitJudgement.Great || judgement == HitJudgement.Good)
         {
             successfulHitCount++;
         }

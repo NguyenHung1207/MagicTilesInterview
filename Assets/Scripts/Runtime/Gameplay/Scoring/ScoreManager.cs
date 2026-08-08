@@ -30,13 +30,17 @@ public class ScoreManager : MonoBehaviour
                 Combo++;
                 break;
 
-            case HitJudgement.Cool:
+            case HitJudgement.Great:
                 points = 75;
-                Combo = 0;
+                Combo++;
                 break;
 
             case HitJudgement.Good:
                 points = 50;
+                Combo++;
+                break;
+
+            case HitJudgement.Miss:
                 Combo = 0;
                 break;
         }
