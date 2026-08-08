@@ -5,6 +5,8 @@ public class GameplayController : MonoBehaviour
     [SerializeField] private SongConductor songConductor;
     [SerializeField] private NoteSpawner noteSpawner;
     [SerializeField] private NoteInputController inputController;
+    private int successfulHitCount;
+    public bool IsGameWon { get; private set; }
 
     public bool IsGameOver { get; private set; }
 
@@ -19,6 +21,26 @@ public class GameplayController : MonoBehaviour
             "GameplayController requires SongConductor, NoteSpawner, and NoteInputController references.",
             this);
         enabled = false;
+    }
+
+    private void Update()
+    {
+        if (IsGameOver || IsGameWon)
+        {
+            return;
+        }
+
+        if (successfulHitCount < noteSpawner.TotalNoteCount)
+        {
+            return;
+        }
+
+        if (!songConductor.IsSongFinished)
+        {
+            return;
+        }
+
+        WinGame();
     }
 
     private void OnEnable()
@@ -38,6 +60,12 @@ public class GameplayController : MonoBehaviour
         if (judgement == HitJudgement.Miss)
         {
             EndGame();
+            return;
+        }
+
+        if (judgement == HitJudgement.Perfect || judgement == HitJudgement.Cool || judgement == HitJudgement.Good)
+        {
+            successfulHitCount++;
         }
     }
 
@@ -48,7 +76,7 @@ public class GameplayController : MonoBehaviour
 
     private void EndGame()
     {
-        if (IsGameOver)
+        if (IsGameOver || IsGameWon)
         {
             return;
         }
@@ -69,5 +97,18 @@ public class GameplayController : MonoBehaviour
         {
             note.Cancel();
         }
+    }
+
+    private void WinGame()
+    {
+        if (IsGameOver || IsGameWon)
+        {
+            return;
+        }
+
+        IsGameWon = true;
+        inputController.enabled = false;
+        noteSpawner.enabled = false;
+        songConductor.StopSong();
     }
 }

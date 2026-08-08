@@ -8,6 +8,7 @@ public class NoteSpawner : MonoBehaviour
 
     [SerializeField] private Note notePrefab;
     [SerializeField] private LaneView[] lanes;
+    public int TotalNoteCount => chartLoader.Notes.Count;
 
     private int nextNoteIndex;
 

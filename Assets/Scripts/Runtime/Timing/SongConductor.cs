@@ -56,6 +56,19 @@ public class SongConductor : MonoBehaviour
         StartSong();
     }
 
+    public bool IsSongFinished
+    {
+        get
+        {
+            if (!isSongScheduled || isSongStopped || musicSource.clip == null)
+            {
+                return false;
+            }
+
+            return SongTime >= musicSource.clip.length;
+        }
+    }
+
     void Update()
     {
 
