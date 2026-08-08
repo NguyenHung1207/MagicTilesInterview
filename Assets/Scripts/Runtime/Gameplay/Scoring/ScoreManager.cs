@@ -1,15 +1,18 @@
 using UnityEngine;
+using System;
 
 public class ScoreManager : MonoBehaviour
 {
     public int Score { get; private set; }
     public int Combo { get; private set; }
 
+    public event Action<int, int> ScoreChanged;
     public void ApplyJudgement(HitJudgement judgement)
     {
         if (judgement == HitJudgement.Miss)
         {
             Combo = 0;
+            ScoreChanged?.Invoke(Score, Combo);
             return;
         }
 
@@ -39,6 +42,7 @@ public class ScoreManager : MonoBehaviour
         }
 
         Score += points;
+        ScoreChanged?.Invoke(Score, Combo);
     }
 
     private void OnEnable()
