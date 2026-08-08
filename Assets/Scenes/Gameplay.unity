@@ -290,6 +290,8 @@ MonoBehaviour:
   scoreManager: {fileID: 1337424188}
   scoreText: {fileID: 1966212003}
   comboText: {fileID: 1503055972}
+  judgementText: {fileID: 543050580}
+  judgementDisplayDuration: 0.45
 --- !u!1 &178105179
 GameObject:
   m_ObjectHideFlags: 0
