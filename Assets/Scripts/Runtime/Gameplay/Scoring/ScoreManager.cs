@@ -40,9 +40,6 @@ public class ScoreManager : MonoBehaviour
                 Combo++;
                 break;
 
-            case HitJudgement.Miss:
-                Combo = 0;
-                break;
         }
 
         Score += points;
