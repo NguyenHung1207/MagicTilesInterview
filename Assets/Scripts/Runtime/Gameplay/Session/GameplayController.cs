@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System;
 
 public class GameplayController : MonoBehaviour
 {
@@ -8,8 +9,9 @@ public class GameplayController : MonoBehaviour
     [SerializeField] private NoteInputController inputController;
     private int successfulHitCount;
     public bool IsGameWon { get; private set; }
-
     public bool IsGameOver { get; private set; }
+    public event Action GameOver;
+    public event Action GameWon;
 
     private void Awake()
     {
@@ -94,7 +96,7 @@ public class GameplayController : MonoBehaviour
 
         songConductor.StopSong();
         CancelActiveNotes();
-        Debug.Log("Game Over", this);
+        GameOver?.Invoke();
     }
 
     private static void CancelActiveNotes()
@@ -117,6 +119,7 @@ public class GameplayController : MonoBehaviour
         inputController.enabled = false;
         noteSpawner.enabled = false;
         songConductor.StopSong();
+        GameWon?.Invoke();
     }
 
     public void RestartGame()

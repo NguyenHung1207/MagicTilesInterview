@@ -292,6 +292,11 @@ MonoBehaviour:
   comboText: {fileID: 1503055972}
   judgementText: {fileID: 543050580}
   judgementDisplayDuration: 0.45
+  gameplayController: {fileID: 1337424189}
+  gameOverPanel: {fileID: 1133431743}
+  gameOverFinalScoreText: {fileID: 1895896583}
+  winPanel: {fileID: 608368571}
+  winFinalScoreText: {fileID: 178105181}
 --- !u!1 &178105179
 GameObject:
   m_ObjectHideFlags: 0
@@ -774,7 +779,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 388928442}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1337424189}
+        m_TargetAssemblyTypeName: GameplayController, Assembly-CSharp
+        m_MethodName: RestartGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &388928442
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1421,7 +1438,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 701475586}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1337424189}
+        m_TargetAssemblyTypeName: GameplayController, Assembly-CSharp
+        m_MethodName: RestartGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &701475586
 MonoBehaviour:
   m_ObjectHideFlags: 0
