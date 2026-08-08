@@ -9,7 +9,7 @@ public class Note : MonoBehaviour
     private double spawnTime;
     private double hitTime;
     private int laneIndex;
-    public static event Action<int, HitJudgement> HitSucceeded;
+    public static event Action<int, HitJudgement, Vector3> HitSucceeded;
     private const double MissDelay = 0.15;
     private bool isResolved;
     public static event Action<HitJudgement> Judged;
@@ -52,7 +52,7 @@ public class Note : MonoBehaviour
         isResolved = true;
         Debug.Log(judgement, this);
         Judged?.Invoke(judgement);
-        HitSucceeded?.Invoke(laneIndex, judgement);
+        HitSucceeded?.Invoke(laneIndex, judgement, transform.position);
         Destroy(gameObject);
 
         return judgement;

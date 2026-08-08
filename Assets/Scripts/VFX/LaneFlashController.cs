@@ -58,7 +58,7 @@ public class LaneFlashController : MonoBehaviour
         }
     }
 
-    private void HandleHit(int laneIndex, HitJudgement judgement)
+    private void HandleHit(int laneIndex, HitJudgement judgement, Vector3 worldPosition)
     {
         if (laneIndex < 0 || laneIndex >= laneFlashes.Length)
         {
