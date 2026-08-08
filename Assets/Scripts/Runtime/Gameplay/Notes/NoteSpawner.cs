@@ -3,7 +3,7 @@ using UnityEngine;
 public class NoteSpawner : MonoBehaviour
 {
     [SerializeField] private SongConductor songConductor;
-    [SerializeField] private MidiChartLoader chartLoader;
+    [SerializeField] private JsonChartLoader chartLoader;
     [SerializeField] private double travelTime = 2.0;
 
     [SerializeField] private Note notePrefab;
