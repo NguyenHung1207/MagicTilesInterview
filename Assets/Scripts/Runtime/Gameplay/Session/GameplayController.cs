@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameplayController : MonoBehaviour
 {
@@ -25,6 +26,12 @@ public class GameplayController : MonoBehaviour
 
     private void Update()
     {
+        if ((IsGameOver || IsGameWon) && Input.GetKeyDown(KeyCode.R))
+        {
+            RestartGame();
+            return;
+        }
+
         if (IsGameOver || IsGameWon)
         {
             return;
@@ -110,5 +117,10 @@ public class GameplayController : MonoBehaviour
         inputController.enabled = false;
         noteSpawner.enabled = false;
         songConductor.StopSong();
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
