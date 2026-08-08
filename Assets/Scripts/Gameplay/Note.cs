@@ -8,6 +8,9 @@ public class Note : MonoBehaviour
     private double spawnTime;
     private double hitTime;
 
+    [SerializeField] private double missWindow = 0.15;
+    private bool isResolved;
+
     public void Initialize(SongConductor conductor, Vector3 startPosition, Vector3 targetPosition, double noteSpawnTime, double noteHitTime)
     {
         songConductor = conductor;
@@ -26,5 +29,12 @@ public class Note : MonoBehaviour
         float t = Mathf.Clamp01((float)progress);
 
         transform.position = Vector3.Lerp(spawnPosition, hitPosition, t);
+
+        if (!isResolved && currentSongTime > hitTime + missWindow)
+        {
+            isResolved = true;
+            Debug.Log("Miss", this);
+            Destroy(gameObject);
+        }
     }
 }

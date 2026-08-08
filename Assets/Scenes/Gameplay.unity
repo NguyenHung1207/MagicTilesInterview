@@ -217,7 +217,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnPoint: {fileID: 1749216035}
-  hitPoint: {fileID: 1749216035}
+  hitPoint: {fileID: 1774577659}
 --- !u!1 &345622416
 GameObject:
   m_ObjectHideFlags: 0
