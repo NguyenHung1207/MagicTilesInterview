@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class Note : MonoBehaviour
 {
@@ -10,7 +11,7 @@ public class Note : MonoBehaviour
 
     private const double MissDelay = 0.15;
     private bool isResolved;
-
+    public static event Action<HitJudgement> Judged;
     public void Initialize(SongConductor conductor, Vector3 startPosition, Vector3 targetPosition, double noteSpawnTime, double noteHitTime)
     {
         songConductor = conductor;
@@ -34,6 +35,7 @@ public class Note : MonoBehaviour
         {
             isResolved = true;
             Debug.Log("Miss", this);
+            Judged?.Invoke(HitJudgement.Miss);
             Destroy(gameObject);
         }
     }
@@ -47,6 +49,7 @@ public class Note : MonoBehaviour
         HitJudgement judgement = HitPositionJudge.Evaluate(transform.position.y, hitPosition.y);
         isResolved = true;
         Debug.Log(judgement, this);
+        Judged?.Invoke(judgement);
         Destroy(gameObject);
         return judgement;
     }
