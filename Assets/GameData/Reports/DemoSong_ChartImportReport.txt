@@ -12,19 +12,23 @@ NORMALIZATION
 Exact duplicates removed: 29
 Unique MIDI note count: 152
 
-CHORD ANALYSIS
+SOURCE GROUP ANALYSIS
 Unique Tick groups: 62
-Chord groups (>1 pitch): 33
-Largest chord size: 5
-Groups exceeding 4 pitches: 7
-Notes dropped by 4-lane limit: 7
+Multi-pitch source groups: 33
+Largest source group size: 5
+
+REPRESENTATIVE SELECTION
+Policy: prefer Track 1; otherwise select the highest pitch.
+Representative notes selected: 62
+Preferred Track 1 selections: 33
+Highest-pitch fallback selections: 29
 
 OUTPUT
-Total gameplay notes: 145
-Lane 0 count: 33
-Lane 1 count: 24
-Lane 2 count: 53
-Lane 3 count: 35
+Total gameplay notes: 62
+Lane 0 count: 3
+Lane 1 count: 12
+Lane 2 count: 38
+Lane 3 count: 9
 First hit time: 0.000000s
 Last hit time: 32.727240s
 
@@ -32,21 +36,20 @@ REPRESENTATIVE TRANSFORMATIONS
 Tick=0
   RAW: pitches=[36, 48, 52, 60, 64, 64]
   AFTER DEDUP: pitches=[36, 48, 52, 60, 64]
-  AFTER 4-LANE LIMIT: pitches=[36, 48, 60, 64]
-  OUTPUT: pitch 36 -> lane 0, pitch 48 -> lane 1, pitch 60 -> lane 2, pitch 64 -> lane 3
+  REPRESENTATIVE: pitch=64, track=1
+  OUTPUT: pitch 64 -> lane 2
 Tick=384
   RAW: pitches=[55]
   AFTER DEDUP: pitches=[55]
-  AFTER 4-LANE LIMIT: pitches=[55]
-  OUTPUT: pitch 55 -> lane 2
+  REPRESENTATIVE: pitch=55, track=4
+  OUTPUT: pitch 55 -> lane 1
 Tick=768
   RAW: pitches=[50, 53, 62, 62]
   AFTER DEDUP: pitches=[50, 53, 62]
-  AFTER 4-LANE LIMIT: pitches=[50, 53, 62]
-  OUTPUT: pitch 50 -> lane 0, pitch 53 -> lane 2, pitch 62 -> lane 3
+  REPRESENTATIVE: pitch=62, track=1
+  OUTPUT: pitch 62 -> lane 2
 
 VALIDATION
 Result: PASS
 Errors: None
-Warnings:
-- Dropped 7 MIDI notes from chords exceeding the four-lane limit.
+Warnings: None

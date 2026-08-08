@@ -31,12 +31,21 @@ public static class ChartImportReportWriter
         report.AppendLine($"Unique MIDI note count: {statistics.UniqueMidiNoteCount}");
         report.AppendLine();
 
-        report.AppendLine("CHORD ANALYSIS");
+        report.AppendLine("SOURCE GROUP ANALYSIS");
         report.AppendLine($"Unique Tick groups: {statistics.TickGroupCount}");
-        report.AppendLine($"Chord groups (>1 pitch): {statistics.ChordGroupCount}");
-        report.AppendLine($"Largest chord size: {statistics.LargestChordSize}");
-        report.AppendLine($"Groups exceeding 4 pitches: {statistics.GroupsExceedingLaneCount}");
-        report.AppendLine($"Notes dropped by 4-lane limit: {statistics.NotesDroppedByLaneLimit}");
+        report.AppendLine($"Multi-pitch source groups: {statistics.MultiPitchGroupCount}");
+        report.AppendLine($"Largest source group size: {statistics.LargestSourceGroupSize}");
+        report.AppendLine();
+
+        report.AppendLine("REPRESENTATIVE SELECTION");
+        report.AppendLine(
+            $"Policy: prefer Track {ChartBuilder.PreferredMelodyTrackIndex}; " +
+            "otherwise select the highest pitch.");
+        report.AppendLine($"Representative notes selected: {statistics.RepresentativeNoteCount}");
+        report.AppendLine(
+            $"Preferred Track {ChartBuilder.PreferredMelodyTrackIndex} selections: " +
+            statistics.PreferredTrackSelectionCount);
+        report.AppendLine($"Highest-pitch fallback selections: {statistics.FallbackSelectionCount}");
         report.AppendLine();
 
         report.AppendLine("OUTPUT");
@@ -56,8 +65,10 @@ public static class ChartImportReportWriter
             report.AppendLine($"Tick={sample.Tick}");
             report.AppendLine($"  RAW: pitches=[{JoinIntegers(sample.RawPitches)}]");
             report.AppendLine($"  AFTER DEDUP: pitches=[{JoinIntegers(sample.UniquePitches)}]");
-            report.AppendLine($"  AFTER 4-LANE LIMIT: pitches=[{JoinIntegers(sample.SelectedPitches)}]");
-            report.AppendLine($"  OUTPUT: {FormatOutputNotes(sample.OutputNotes)}");
+            report.AppendLine(
+                $"  REPRESENTATIVE: pitch={sample.RepresentativePitch}, " +
+                $"track={sample.RepresentativeTrackIndex}");
+            report.AppendLine($"  OUTPUT: {FormatOutputNote(sample.OutputNote)}");
         }
 
         report.AppendLine();
@@ -90,20 +101,9 @@ public static class ChartImportReportWriter
         return text.ToString();
     }
 
-    private static string FormatOutputNotes(IReadOnlyList<ChartBuiltNote> notes)
+    private static string FormatOutputNote(ChartBuiltNote note)
     {
-        var text = new StringBuilder();
-        for (int i = 0; i < notes.Count; i++)
-        {
-            if (i > 0)
-            {
-                text.Append(", ");
-            }
-
-            text.Append($"pitch {notes[i].NoteNumber} -> lane {notes[i].Lane}");
-        }
-
-        return text.ToString();
+        return $"pitch {note.NoteNumber} -> lane {note.Lane}";
     }
 
     private static void AppendMessages(

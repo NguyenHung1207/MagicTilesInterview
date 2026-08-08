@@ -2,16 +2,13 @@
 
 ## 1. Purpose
 
-Project preprocess MIDI trong Unity Editor để runtime không phải đọc MIDI, tải DryWetMIDI hoặc tự giải quyết duplicate/chord khi gameplay đang chạy. Kết quả preprocessing là JSON nhỏ, deterministic và chỉ chứa dữ liệu gameplay cần dùng.
+Project preprocess MIDI trong Unity Editor để gameplay không phải tự đọc MIDI, loại duplicate hoặc giải quyết chord trong lúc chạy. Editor tạo một JSON nhỏ, deterministic và đã validate; runtime chỉ đọc `lane` cùng `hitTime`.
 
-Lợi ích chính:
+Gameplay hiện là simplified Magic Tiles và chỉ hỗ trợ một input tại mỗi musical event. Vì vậy invariant quan trọng nhất của chart là:
 
-- phát hiện lỗi chart trước Play Mode;
-- loại bỏ duplicate và lane collision một lần tại import time;
-- giữ runtime đơn giản và độc lập với format MIDI;
-- tạo report có thể review trong interview hoặc source control.
-
-Phase hiện tại kết thúc ở validated JSON. `Legacy/MidiChartLoader` vẫn được giữ nguyên và runtime chưa đọc JSON.
+```text
+One unique MIDI Tick group -> exactly one gameplay note
+```
 
 ## 2. Architecture
 
@@ -21,14 +18,12 @@ flowchart TD
     EX --> RAW[List of MidiExtractedNote]
     RAW --> BUILD[ChartBuilder]
     BUILD --> CHART[SongChartData]
-    BUILD --> STATS[Build statistics and samples]
+    BUILD --> STATS[Statistics and samples]
     CHART --> VALIDATE[ChartValidator]
     VALIDATE --> JSON[DemoSong_Chart.json]
     STATS --> REPORT[DemoSong_ChartImportReport.txt]
-    JSON -. future phase .-> LOADER[Runtime JSON loader]
+    JSON --> LOADER[Runtime JsonChartLoader]
 ```
-
-Ranh giới dependency:
 
 ```text
 SOURCE MIDI + DryWetMIDI
@@ -36,10 +31,10 @@ SOURCE MIDI + DryWetMIDI
           v
 EDITOR: Extractor -> Builder -> Validator -> JSON/Report
 -------------------------------------------------------
-RUNTIME (future): JSON -> gameplay chart
+RUNTIME: JsonChartLoader -> NoteSpawner -> gameplay
 ```
 
-DryWetMIDI chỉ xuất hiện trong extractor/importer Editor và legacy loader. `ChartBuilder` cùng `ChartValidator` không phụ thuộc UnityEngine hoặc DryWetMIDI.
+`ChartBuilder` và `ChartValidator` là pure C#: không phụ thuộc UnityEngine hoặc DryWetMIDI. Runtime migration đã dùng JSON, nhưng runtime code không thuộc phạm vi thay đổi của chart policy này.
 
 ## 3. Folder Structure
 
@@ -52,21 +47,18 @@ Assets/
   Scripts/
     Editor/ChartImport/Midi/
       MidiExtractedNote.cs       Raw Editor-side note model
-      MidiNoteExtractor.cs       Reads actual MIDI tracks and timing
-      ChartBuilder.cs            Dedup, chord limit and lane assignment
-      ChartValidator.cs          Enforces generated-chart invariants
-      ChartImportReportWriter.cs Formats human-readable statistics
-      MidiChartImporter.cs       Unity menu and pipeline orchestration
+      MidiNoteExtractor.cs       Reads MIDI tracks and timing
+      ChartBuilder.cs            Dedup, group, representative selection, lane mapping
+      ChartValidator.cs          Enforces chart invariants
+      ChartImportReportWriter.cs Formats import statistics
+      MidiChartImporter.cs       Unity menu/orchestration
     Runtime/Chart/
-      NoteData.cs                Runtime gameplay note
-      SongChartData.cs           JSON root model
-    Legacy/
-      MidiChartLoader.cs         Existing temporary runtime loader
+      NoteData.cs
+      SongChartData.cs
+      JsonChartLoader.cs
 Docs/
   MIDI_CHART_PIPELINE.md
 ```
-
-`MidiChartImporter` không chứa chart algorithm. Nó chỉ load source, gọi từng stage, ghi artifact, refresh AssetDatabase và log summary.
 
 ## 4. Data Models
 
@@ -74,182 +66,171 @@ Docs/
 
 Editor-only raw model:
 
-- `Tick`: MIDI absolute tick; khóa chính xác cho event grouping.
-- `TimeSeconds`: thời gian đã convert bằng TempoMap.
+- `Tick`: absolute MIDI tick.
+- `TimeSeconds`: Tick đã convert qua TempoMap.
 - `NoteNumber`: MIDI pitch.
-- `TrackIndex`: track nguồn để debug và ổn định sort.
-
-Model không chứa lane và không bị deduplicate trong extractor. Channel không được thêm vì DemoSong chỉ dùng channel 0, 2, 3 và 4; không có percussion channel 9 và pipeline hiện không lọc theo channel.
+- `TrackIndex`: track nguồn.
 
 ### NoteData
 
-Runtime model chỉ có:
+Runtime model:
 
-- `lane`: lane gameplay 0..3;
+- `lane`: lane 0..3.
 - `hitTime`: thời điểm hit theo giây.
 
 ### SongChartData
 
 JSON root object chứa `List<NoteData> notes`.
 
-Raw MIDI data không phải gameplay chart data. Track, tick và pitch cần để build/debug, nhưng runtime chỉ cần biết note xuất hiện ở lane nào và lúc nào.
+Raw MIDI data không phải gameplay chart data. Tick, pitch và track cần cho preprocessing/debug; runtime chỉ cần lane và time.
 
 ## 5. Extraction Flow
 
-`MidiNoteExtractor` thực hiện các bước sau:
+`MidiNoteExtractor`:
 
-1. Lấy `TempoMap` từ toàn bộ `MidiFile`.
-2. Duyệt từng `TrackChunk` và gán `TrackIndex` theo thứ tự source.
-3. Lấy note bằng DryWetMIDI `GetNotes()`.
-4. Giữ `note.Time` làm absolute MIDI Tick.
-5. Convert Tick qua `note.TimeAs<MetricTimeSpan>(tempoMap)`.
+1. Lấy `TempoMap` từ `MidiFile`.
+2. Duyệt từng `TrackChunk` và giữ `TrackIndex`.
+3. Lấy raw note qua DryWetMIDI `GetNotes()`.
+4. Giữ `note.Time` làm Tick.
+5. Convert bằng `note.TimeAs<MetricTimeSpan>(tempoMap)`.
 6. Lưu `MetricTimeSpan.TotalSeconds` thành `TimeSeconds`.
 7. Sort deterministic theo Tick, NoteNumber, TrackIndex.
 
-Extractor trả lời câu hỏi “MIDI nguồn thực tế chứa gì?”. Nó không deduplicate, không xử lý chord, không assign lane và không tạo `NoteData`.
+Extractor chỉ trả lời “MIDI nguồn chứa gì?”. Nó không deduplicate, chọn representative, assign lane hoặc tạo `NoteData`.
 
 ## 6. Duplicate Removal
 
-Exact gameplay duplicate có key typed:
+Exact duplicate key là:
 
 ```text
 (Tick, NoteNumber)
 ```
 
-`TrackIndex` không thuộc key. Hai track có cùng pitch tại cùng MIDI event sẽ tạo cùng gameplay intent, nên chỉ giữ event đầu tiên sau deterministic sort.
+TrackIndex không nằm trong key vì cùng pitch tại cùng MIDI event tạo cùng gameplay intent.
 
-Ví dụ thật tại Tick 0:
-
-```text
-Note 64, Track 1
-Note 64, Track 4
-```
-
-Sau deduplicate chỉ còn một Note 64. DemoSong có 181 raw notes, loại 29 exact duplicates và còn 152 unique MIDI notes.
-
-Không dùng `TimeSeconds` làm key vì floating-point time là kết quả convert; Tick mới là giá trị source chính xác và ổn định.
-
-## 7. Chord Handling
-
-Các pitch khác nhau cùng Tick là chord, không phải duplicate.
-
-Mỗi Tick group được sort pitch tăng dần:
-
-- nếu có tối đa 4 pitch: giữ tất cả;
-- nếu có hơn 4 pitch: chọn đúng 4 pitch trải đều từ thấp đến cao.
-
-Với chord size `N`, bốn source index được tính deterministic:
+Ví dụ thật:
 
 ```text
-round(i * (N - 1) / 3), i = 0..3
+Tick 0, Note 64, Track 1
+Tick 0, Note 64, Track 4
 ```
 
-Rounding dùng `MidpointRounding.AwayFromZero`. Policy luôn giữ hai biên thấp/cao và representation ở giữa, thay vì chỉ lấy bốn pitch thấp nhất hoặc chọn random.
+Sau deduplicate chỉ còn một Note 64. DemoSong có 181 raw notes, loại 29 duplicate và còn 152 unique MIDI notes.
 
-Ví dụ Tick 0 sau deduplicate:
+Không dùng `TimeSeconds` làm key vì Tick là integer source-of-truth; seconds là kết quả floating-point conversion.
+
+## 7. Representative Note Selection
+
+Các pitch khác nhau cùng Tick vẫn là source chord/group, không phải duplicate. Tuy nhiên gameplay chỉ phát sinh một note cho mỗi group.
+
+MIDI evidence cho DemoSong:
+
+| Track | Notes | Unique Ticks | Pitch range | Polyphonic Ticks | Interpretation |
+|---:|---:|---:|---:|---:|---|
+| 1 | 33 | 33 | 60..72 | 0 | Monophonic high-register melody |
+| 3 | 33 | 33 | 48..60 | 0 | Lower accompaniment |
+| 4 | 86 | 57 | 52..71 | 24 | Dense harmony/rhythm |
+| 5 | 29 | 26 | 36..55 | 3 | Bass/lower accompaniment |
+
+Track 1 còn có 27/33 events được duplicate ở track khác, củng cố việc đây là melody line được layer trong arrangement.
+
+Policy deterministic:
+
+1. Sort unique notes trong Tick group theo pitch, rồi TrackIndex.
+2. Nếu group có note Track 1, chọn note Track 1.
+3. Nếu một source tương lai làm Track 1 polyphonic, chọn pitch cao nhất của Track 1.
+4. Nếu Track 1 im lặng, chọn pitch cao nhất toàn group làm top-voice fallback.
+
+Policy không random và không cố xây melody detector tổng quát. Với DemoSong, 33 representatives đến từ Track 1 và 29 dùng fallback.
+
+Ví dụ:
 
 ```text
-[36, 48, 52, 60, 64]
-             |
-             v
-[36, 48, 60, 64]
-```
+Tick 0 unique pitches: [36, 48, 52, 60, 64]
+Track 1 pitch: 64
+Representative: pitch 64, Track 1
 
-DemoSong có chord lớn nhất 5 pitch. Có 7 group vượt bốn pitch và tổng cộng 7 pitch bị drop.
+Tick 384 unique pitches: [55]
+Track 1 silent
+Representative: highest pitch 55, Track 4
+
+Tick 768 unique pitches: [50, 53, 62]
+Track 1 pitch: 62
+Representative: pitch 62, Track 1
+```
 
 ## 8. Lane Assignment
 
-Lane count là hằng số `ChartBuilder.LaneCount = 4`.
-
-### Chord có từ 2 đến 4 pitch
-
-Pitch đã sort được trải từ trái sang phải. Pitch index `i` trong chord size `C` được map bằng:
-
-```text
-lane = round(i * 3 / (C - 1))
-```
-
-Kết quả:
-
-- 2 pitch -> lane `[0, 3]`;
-- 3 pitch -> lane `[0, 2, 3]`;
-- 4 pitch -> lane `[0, 1, 2, 3]`.
-
-Điều này đảm bảo pitch thấp hơn luôn nằm về bên trái pitch cao hơn và không có duplicate lane trong một Tick.
-
-Ví dụ 1, Tick 0:
-
-```text
-pitch [36, 48, 60, 64]
-lane  [ 0,  1,  2,  3]
-```
-
-Ví dụ 2, Tick 768:
-
-```text
-pitch [50, 53, 62]
-lane  [ 0,  2,  3]
-```
-
-### Single note
-
-Single pitch được normalize theo global pitch range của các candidate đã chọn:
+Sau khi mỗi Tick chỉ còn một representative, builder lấy global representative-pitch range và map pitch sang bốn lane:
 
 ```text
 normalized = (pitch - minPitch) / (maxPitch - minPitch)
 lane = round(normalized * 3)
 ```
 
-DemoSong dùng candidate range 36..72. Vì vậy single pitch 55 tại Tick 384 map vào lane 2. Trường hợp toàn chart chỉ có một pitch duy nhất map vào lane 0.
+Rounding dùng `MidpointRounding.AwayFromZero`. Nếu toàn chart chỉ có một pitch, lane mặc định là 0.
 
-Policy này nhỏ, deterministic và tránh hoàn toàn root cause cũ `noteNumber % 4`.
+DemoSong có representative range 47..72:
+
+- pitch 47 map về lane 0;
+- pitch 55 map về lane 1;
+- pitch 64 map về lane 2;
+- pitch 72 map về lane 3.
+
+Đây là pitch-based mapping đơn giản: pitch thấp thiên trái, pitch cao thiên phải. Không dùng `noteNumber % 4`, không random và không có collision vì mỗi Tick chỉ tạo một note.
 
 ## 9. Validation Rules
 
-`ChartValidator` không export JSON khi có error. Nó kiểm tra:
+`ChartValidator` không cho export bad JSON. Nó kiểm tra:
 
-- build result, chart và notes list không null;
-- chart không rỗng;
+- chart và notes list không null/rỗng;
 - mỗi `NoteData` không null;
 - lane trong range 0..3;
 - hitTime không âm, NaN hoặc Infinity;
 - notes sort không giảm theo hitTime;
-- không trùng exact `(hitTime, lane)`;
+- không có hai gameplay notes cùng exact hitTime;
 - build context count khớp JSON note count;
-- không trùng exact `(Tick, lane)`.
+- representative count bằng unique Tick group count;
+- gameplay note count bằng unique Tick group count;
+- không có hai built notes cùng Tick.
 
-Chord bị giới hạn bốn lane là warning có chủ đích, không phải validation error. DemoSong hiện validation PASS với một warning về 7 pitch bị drop.
+DemoSong hiện PASS toàn bộ invariant:
+
+```text
+62 unique Tick groups == 62 representatives == 62 gameplay notes
+```
 
 ## 10. Generated JSON
 
-JSON chỉ serialize `SongChartData` bằng Unity `JsonUtility` pretty print:
+Importer serialize `SongChartData` bằng Unity `JsonUtility` pretty print:
 
 ```json
 {
   "notes": [
     {
-      "lane": 0,
+      "lane": 2,
       "hitTime": 0.0
     }
   ]
 }
 ```
 
-TrackIndex, Tick và NoteNumber không được đưa vào JSON vì runtime không cần chúng. Giữ JSON nhỏ cũng làm runtime loader tương lai đơn giản hơn và tránh coupling với MIDI.
+TrackIndex, Tick và NoteNumber không vào runtime JSON. Runtime đã nhận đúng abstraction cuối: lane nào, lúc nào.
 
 ## 11. Import Report
 
-Report ghi các nhóm statistic sau:
+Report gồm:
 
-- **SOURCE:** file MIDI được sử dụng.
-- **RAW DATA:** số track và raw notes extractor nhìn thấy.
-- **NORMALIZATION:** duplicate bị loại và số unique MIDI notes.
-- **CHORD ANALYSIS:** số Tick group, chord group, chord lớn nhất, group quá bốn pitch và số pitch bị drop.
-- **OUTPUT:** gameplay note count, phân bố bốn lane, first/last hit time.
-- **REPRESENTATIVE TRANSFORMATIONS:** raw -> dedup -> lane limit -> pitch/lane cho ba Tick đầu.
+- **SOURCE:** MIDI path.
+- **RAW DATA:** track count và raw notes.
+- **NORMALIZATION:** duplicate removed và unique MIDI notes.
+- **SOURCE GROUP ANALYSIS:** unique Tick groups, multi-pitch groups, largest group.
+- **REPRESENTATIVE SELECTION:** policy, total representatives, preferred-track/fallback counts.
+- **OUTPUT:** final notes, lane distribution, first/last hit time.
+- **REPRESENTATIVE TRANSFORMATIONS:** raw -> dedup -> representative -> output cho ba Tick đầu.
 - **VALIDATION:** PASS/FAIL, errors và warnings.
 
-Report không dump toàn bộ note list, vì mục đích của nó là review pipeline chứ không thay chart editor.
+Report không dump toàn bộ notes; nó tập trung vào evidence cần review policy.
 
 ## 12. How To Use
 
@@ -257,110 +238,114 @@ Trong Unity Editor:
 
 1. Chọn **Tools -> Magic Tiles -> Build Demo Song Chart**.
 2. Chờ log `Validation PASS`.
-3. Review JSON tại `Assets/GameData/Generated/Charts/DemoSong_Chart.json`.
-4. Review report tại `Assets/GameData/Reports/DemoSong_ChartImportReport.txt`.
+3. Review `Assets/GameData/Generated/Charts/DemoSong_Chart.json`.
+4. Review `Assets/GameData/Reports/DemoSong_ChartImportReport.txt`.
+5. Chạy lại menu để xác nhận output deterministic.
 
-Diagnostic raw source vẫn có tại:
+Raw diagnostic menu:
 
 **Tools -> Magic Tiles -> Diagnostics -> Preview Raw MIDI Notes**
-
-Build cùng một input luôn tạo cùng note order, lane và statistic.
 
 ## 13. Debugging Guide
 
 ### Raw note count sai
 
-Chạy diagnostic menu. Kiểm tra MIDI asset path, track count, import type TextAsset và DryWetMIDI parse error. Extractor phải thấy 181 raw notes với DemoSong hiện tại.
+Kiểm tra MIDI path, TextAsset import, DryWetMIDI parse và track count. DemoSong hiện có 181 raw notes.
 
 ### Duplicate count bất thường
 
-Kiểm tra source có copy melody giữa nhiều track hay không. Duplicate key cố ý bỏ qua TrackIndex; thay đổi Tick resolution/source quantization có thể đổi kết quả.
+Kiểm tra melody có bị layer/copy giữa track hay không. Duplicate key cố ý bỏ qua TrackIndex.
 
-### Chord quá lớn
+### Final note count khác Tick group count
 
-Xem `Groups exceeding 4 pitches`, `Notes dropped` và representative sample trong report. Nếu drop nhiều, source có thể chứa accompaniment không phù hợp hoặc cần authoring policy tốt hơn.
+Đây là validation error. Kiểm tra representative selection và đảm bảo builder chỉ gọi `BuildGameplayNotes` một lần cho mỗi prepared Tick group.
 
-### Same lane/same timestamp
+### Melody track thay đổi
 
-Validator phải FAIL cả `(hitTime, lane)` lẫn `(Tick, lane)`. Kiểm tra lane formula và đảm bảo không sửa `LaneCount` riêng lẻ ở stage khác.
+Xem track profile trong MIDI diagnostic/report. `PreferredMelodyTrackIndex = 1` là quyết định theo evidence của DemoSong, không phải universal MIDI convention.
+
+### Lane distribution quá lệch
+
+Review representative pitch range. Global min/max mapping giữ pitch meaning nhưng không cam kết số note cân bằng giữa lane.
 
 ### JSON rỗng
 
-Validator sẽ không cho export chart rỗng. Kiểm tra extractor count và exception trong Console.
+Validator sẽ FAIL. Kiểm tra extractor output và exception trong Console.
 
 ### MIDI/audio timing mismatch
 
-So sánh first beat của MIDI và audio waveform. Pipeline giữ timing theo TempoMap nhưng không tự đo audio latency hoặc silence đầu file. Có thể cần chart offset/calibration trong phase sau.
+TempoMap giữ MIDI timing, nhưng pipeline không tự đo silence đầu audio hoặc output latency. Phase calibration có thể cần chart offset.
 
-### Output thay đổi giữa hai lần build
+### Output không deterministic
 
-Kiểm tra source MIDI có thay đổi hay không. Sort, deduplicate, chord selection và lane mapping hiện đều deterministic; không stage nào sử dụng random.
+Kiểm tra source MIDI có đổi không. Sort, dedup, preferred-track selection, highest-pitch fallback và lane mapping đều deterministic.
 
 ## 14. Design Decisions
 
-- **Preprocessing thay vì runtime parsing:** chuyển chi phí, dependency và validation sang Editor; runtime nhận data sạch.
-- **Tick thay vì double seconds:** Tick là source-of-truth chính xác cho grouping và duplicate key.
-- **HashSet typed key:** `(long Tick, int NoteNumber)` rõ nghĩa, nhanh và tránh string allocation.
-- **Deterministic generation:** output dễ diff, test và reproduce.
-- **JSON thay vì binary/ScriptableObject:** human-readable, dễ review trong home test và không khóa pipeline vào Unity asset serialization.
-- **Builder không phụ thuộc DryWetMIDI:** algorithm có thể test với object raw nhỏ mà không phải dựng MIDI file.
-- **KISS:** không namespace, asmdef, interface, DI framework hoặc settings asset trong phase này.
-- **Warning cho lane-limit drop:** drop là policy hợp lệ nhưng phải visible trong report.
+- **Preprocessing:** runtime nhận chart sạch, không mang MIDI logic.
+- **Tick grouping:** chính xác hơn double seconds.
+- **Typed HashSet key:** `(long Tick, int NoteNumber)` rõ nghĩa và không tạo string.
+- **One Tick -> one note:** phù hợp simplified single-input Magic Tiles, tránh full horizontal row/multi-touch chord.
+- **Track 1 preference:** dựa trên evidence monophonic/high-register của DemoSong.
+- **Highest-pitch fallback:** top voice là melody proxy nhỏ và dễ giải thích.
+- **Pitch-range lane mapping:** giữ quan hệ thấp-trái/cao-phải mà không modulo/random.
+- **Deterministic JSON:** dễ diff, test và reproduce.
+- **Pure builder/validator:** dễ test không cần Unity hoặc DryWetMIDI.
+- **KISS:** không namespace, asmdef, DI, interface hoặc settings asset.
 
 ## 15. Known Limitations
 
-- Automatic MIDI-to-chart không biết track nào thật sự là melody quan trọng.
-- Source MIDI có thể chứa accompaniment; exact duplicate removal không loại các pitch accompaniment khác nhau.
-- Lane mapping là heuristic, chưa tối ưu ergonomics, hand alternation hoặc difficulty curve.
-- Chord hơn bốn pitch bắt buộc mất thông tin.
-- Single-note lane dựa trên global pitch range nên thay source range có thể đổi lane toàn bài.
-- Pipeline chưa có chart offset/calibration nếu MIDI và audio không cùng origin.
-- Rhythm game production thường cần chart editor/authoring workflow riêng.
-- Runtime JSON loader chưa được implement; legacy loader vẫn hoạt động như trước.
+- Track 1 preference là source-specific heuristic; MIDI khác có thể đặt melody ở track khác.
+- Highest pitch không phải lúc nào cũng là melody.
+- Một Tick có nhiều pitch sẽ mất harmony vì gameplay chỉ giữ một representative.
+- Global pitch range có thể tạo lane distribution không cân bằng.
+- Pipeline chưa tối ưu hand alternation, difficulty curve hoặc repeated-lane ergonomics.
+- Chưa có chart offset/calibration nếu MIDI và audio không cùng origin.
+- Production rhythm game thường cần track metadata hoặc chart authoring tool riêng.
 
 ## 16. Interview Review
 
-1. **Vì sao preprocess MIDI?**  
-   Để runtime không mang dependency MIDI và chỉ nhận chart đã validate.
+1. **Vì sao preprocess MIDI?**
+   Để runtime chỉ đọc chart đã normalize và validate.
 
-2. **Vì sao group bằng Tick?**  
-   Tick là integer source-of-truth; seconds là kết quả floating-point conversion.
+2. **Vì sao group bằng Tick?**
+   Tick là integer source-of-truth; seconds là kết quả conversion.
 
-3. **Vì sao không deduplicate bằng TimeSeconds?**  
-   Hai phép convert có thể gặp precision issue; Tick biểu diễn exact MIDI event.
+3. **Vì sao không deduplicate bằng TimeSeconds?**
+   Floating-point time không phù hợp làm exact source key.
 
-4. **Duplicate được định nghĩa thế nào?**  
-   Cùng Tick và cùng NoteNumber, không phụ thuộc TrackIndex.
+4. **Exact duplicate là gì?**
+   Cùng Tick và NoteNumber, không phụ thuộc TrackIndex.
 
-5. **Vì sao TrackIndex không vào JSON?**  
-   Nó chỉ phục vụ source debug; gameplay không dùng track.
+5. **Same Tick, khác pitch có phải duplicate không?**
+   Không; đó là multi-pitch source group nhưng gameplay chọn một representative.
 
-6. **Vì sao extractor không assign lane?**  
-   Extractor phải phản ánh trung thực source; lane là gameplay policy của builder.
+6. **Vì sao chọn Track 1?**
+   Nó monophonic, high-register, 33 note/33 Tick và phần lớn được layer ở track khác.
 
-7. **Vì sao builder không phụ thuộc DryWetMIDI?**  
-   Để algorithm nhỏ, dễ test và không coupling với parser library.
+7. **Fallback khi Track 1 im lặng là gì?**
+   Pitch cao nhất trong group, coi như top-voice melody proxy.
 
-8. **Same Tick nhưng khác pitch có phải duplicate không?**  
-   Không. Đó là chord và được xử lý theo giới hạn bốn lane.
+8. **Vì sao không xây melody detector tổng quát?**
+   Không cần cho home test và sẽ tăng complexity thiếu evidence.
 
-9. **Chord năm pitch được xử lý thế nào?**  
-   Chọn bốn pitch trải đều từ thấp đến cao và report một pitch bị drop.
+9. **Invariant quan trọng nhất là gì?**
+   Final gameplay note count phải bằng unique Tick group count.
 
-10. **Vì sao không dùng `noteNumber % 4`?**  
-    Nó có thể map nhiều pitch của cùng chord vào một lane, tạo collision.
+10. **Vì sao không dùng `noteNumber % 4`?**
+    Modulo không giữ quan hệ pitch thấp/cao và từng gây lane collision.
 
-11. **Vì sao output phải deterministic?**  
-    Để cùng input cho cùng JSON, dễ diff, debug và review.
+11. **Lane được tính thế nào?**
+    Normalize representative pitch trong global range rồi round sang lane 0..3.
 
-12. **Vì sao chọn JSON?**  
-    Nó dễ đọc, dễ source-control và đủ đơn giản cho home test.
+12. **Vì sao output deterministic?**
+    Để cùng MIDI tạo cùng JSON, dễ diff và debug.
 
-13. **Validator bảo vệ invariant quan trọng nào?**  
-    Lane hợp lệ, time hữu hạn/sorted và không trùng lane tại cùng Tick/time.
+13. **Vì sao TrackIndex không vào JSON?**
+    Nó chỉ phục vụ Editor selection/debug; runtime không cần.
 
-14. **Nếu scale lên nhiều song thì cải tiến gì?**  
-    Thêm importer chọn asset/settings, batch build, tests và runtime JSON loader có versioning.
+14. **Nếu thêm nhiều song thì cải tiến gì?**
+    Đưa preferred track/policy thành import setting và thêm batch tests.
 
-15. **Giới hạn lớn nhất của heuristic hiện tại là gì?**  
-    Nó không hiểu musical intent hoặc ergonomics như chart authoring thủ công.
+15. **Giới hạn chính của policy hiện tại?**
+    Melody selection và lane distribution vẫn là heuristic theo source.

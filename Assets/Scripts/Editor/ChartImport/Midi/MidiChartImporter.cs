@@ -60,7 +60,7 @@ public static class MidiChartImporter
                 $"Built Demo Song chart: {statistics.RawNoteCount} raw -> " +
                 $"{statistics.GameplayNoteCount} gameplay notes, " +
                 $"{statistics.ExactDuplicatesRemoved} duplicates removed, " +
-                $"{statistics.NotesDroppedByLaneLimit} notes dropped. " +
+                $"{statistics.RepresentativeNoteCount} representatives selected. " +
                 $"Validation PASS. Output: {ChartOutputPath}");
         }
         catch (Exception exception)

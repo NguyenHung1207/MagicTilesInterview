@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class ChartBuilder
 {
     public const int LaneCount = 4;
+    public const int PreferredMelodyTrackIndex = 1;
     private const int TransformationSampleCount = 3;
 
     public ChartBuildResult Build(IReadOnlyList<MidiExtractedNote> rawNotes)
@@ -30,30 +31,30 @@ public class ChartBuilder
 
         foreach (KeyValuePair<long, List<MidiExtractedNote>> pair in notesByTick)
         {
-            List<MidiExtractedNote> uniqueGroup = pair.Value;
-            if (uniqueGroup.Count > 1)
+            List<MidiExtractedNote> group = pair.Value;
+            if (group.Count > 1)
             {
-                result.Statistics.ChordGroupCount++;
+                result.Statistics.MultiPitchGroupCount++;
             }
 
-            result.Statistics.LargestChordSize = Math.Max(
-                result.Statistics.LargestChordSize,
-                uniqueGroup.Count);
+            result.Statistics.LargestSourceGroupSize = Math.Max(
+                result.Statistics.LargestSourceGroupSize,
+                group.Count);
 
-            if (uniqueGroup.Count > LaneCount)
+            MidiExtractedNote representative = SelectRepresentativeNote(group);
+            if (representative.TrackIndex == PreferredMelodyTrackIndex)
             {
-                result.Statistics.GroupsExceedingLaneCount++;
+                result.Statistics.PreferredTrackSelectionCount++;
+            }
+            else
+            {
+                result.Statistics.FallbackSelectionCount++;
             }
 
-            List<MidiExtractedNote> selectedNotes = SelectRepresentativeNotes(uniqueGroup);
-            result.Statistics.NotesDroppedByLaneLimit += uniqueGroup.Count - selectedNotes.Count;
-            preparedGroups.Add(new PreparedTickGroup(pair.Key, selectedNotes));
-
-            foreach (MidiExtractedNote note in selectedNotes)
-            {
-                minimumPitch = Math.Min(minimumPitch, note.NoteNumber);
-                maximumPitch = Math.Max(maximumPitch, note.NoteNumber);
-            }
+            result.Statistics.RepresentativeNoteCount++;
+            preparedGroups.Add(new PreparedTickGroup(pair.Key, representative));
+            minimumPitch = Math.Min(minimumPitch, representative.NoteNumber);
+            maximumPitch = Math.Max(maximumPitch, representative.NoteNumber);
         }
 
         BuildGameplayNotes(preparedGroups, minimumPitch, maximumPitch, result);
@@ -86,8 +87,7 @@ public class ChartBuilder
         var seen = new HashSet<(long Tick, int NoteNumber)>();
         foreach (MidiExtractedNote note in sortedNotes)
         {
-            var key = (note.Tick, note.NoteNumber);
-            if (seen.Add(key))
+            if (seen.Add((note.Tick, note.NoteNumber)))
             {
                 result.Add(note);
             }
@@ -114,23 +114,26 @@ public class ChartBuilder
         return result;
     }
 
-    private static List<MidiExtractedNote> SelectRepresentativeNotes(
+    private static MidiExtractedNote SelectRepresentativeNote(
         IReadOnlyList<MidiExtractedNote> sortedUniqueNotes)
     {
-        if (sortedUniqueNotes.Count <= LaneCount)
+        MidiExtractedNote preferredTrackNote = null;
+        foreach (MidiExtractedNote note in sortedUniqueNotes)
         {
-            return new List<MidiExtractedNote>(sortedUniqueNotes);
+            if (note.TrackIndex == PreferredMelodyTrackIndex)
+            {
+                // Keep the highest note if a future source makes the preferred track polyphonic.
+                preferredTrackNote = note;
+            }
         }
 
-        var result = new List<MidiExtractedNote>(LaneCount);
-        for (int i = 0; i < LaneCount; i++)
+        if (preferredTrackNote != null)
         {
-            double normalizedIndex = i * (sortedUniqueNotes.Count - 1d) / (LaneCount - 1d);
-            int sourceIndex = (int)Math.Round(normalizedIndex, MidpointRounding.AwayFromZero);
-            result.Add(sortedUniqueNotes[sourceIndex]);
+            return preferredTrackNote;
         }
 
-        return result;
+        // The top voice is the simplest deterministic melody proxy when Track 1 is silent.
+        return sortedUniqueNotes[sortedUniqueNotes.Count - 1];
     }
 
     private static void BuildGameplayNotes(
@@ -141,29 +144,25 @@ public class ChartBuilder
     {
         foreach (PreparedTickGroup group in groups)
         {
-            for (int i = 0; i < group.Notes.Count; i++)
+            MidiExtractedNote sourceNote = group.Representative;
+            int lane = MapPitchToLane(sourceNote.NoteNumber, minimumPitch, maximumPitch);
+
+            result.Chart.notes.Add(new NoteData
             {
-                MidiExtractedNote sourceNote = group.Notes[i];
-                int lane = group.Notes.Count == 1
-                    ? MapSinglePitchToLane(sourceNote.NoteNumber, minimumPitch, maximumPitch)
-                    : MapChordIndexToLane(i, group.Notes.Count);
+                lane = lane,
+                hitTime = sourceNote.TimeSeconds
+            });
 
-                result.Chart.notes.Add(new NoteData
-                {
-                    lane = lane,
-                    hitTime = sourceNote.TimeSeconds
-                });
+            result.BuiltNotes.Add(new ChartBuiltNote
+            {
+                Tick = group.Tick,
+                NoteNumber = sourceNote.NoteNumber,
+                TrackIndex = sourceNote.TrackIndex,
+                Lane = lane,
+                HitTime = sourceNote.TimeSeconds
+            });
 
-                result.BuiltNotes.Add(new ChartBuiltNote
-                {
-                    Tick = group.Tick,
-                    NoteNumber = sourceNote.NoteNumber,
-                    Lane = lane,
-                    HitTime = sourceNote.TimeSeconds
-                });
-
-                result.Statistics.LaneCounts[lane]++;
-            }
+            result.Statistics.LaneCounts[lane]++;
         }
 
         result.Statistics.GameplayNoteCount = result.Chart.notes.Count;
@@ -174,7 +173,7 @@ public class ChartBuilder
         }
     }
 
-    private static int MapSinglePitchToLane(int pitch, int minimumPitch, int maximumPitch)
+    private static int MapPitchToLane(int pitch, int minimumPitch, int maximumPitch)
     {
         if (minimumPitch == maximumPitch)
         {
@@ -184,14 +183,6 @@ public class ChartBuilder
         double normalizedPitch = (pitch - minimumPitch) / (double)(maximumPitch - minimumPitch);
         return (int)Math.Round(
             normalizedPitch * (LaneCount - 1),
-            MidpointRounding.AwayFromZero);
-    }
-
-    private static int MapChordIndexToLane(int index, int chordSize)
-    {
-        double normalizedIndex = index / (double)(chordSize - 1);
-        return (int)Math.Round(
-            normalizedIndex * (LaneCount - 1),
             MidpointRounding.AwayFromZero);
     }
 
@@ -225,19 +216,9 @@ public class ChartBuilder
                 sample.UniquePitches.Add(note.NoteNumber);
             }
 
-            foreach (MidiExtractedNote note in group.Notes)
-            {
-                sample.SelectedPitches.Add(note.NoteNumber);
-            }
-
-            foreach (ChartBuiltNote builtNote in result.BuiltNotes)
-            {
-                if (builtNote.Tick == group.Tick)
-                {
-                    sample.OutputNotes.Add(builtNote);
-                }
-            }
-
+            sample.RepresentativePitch = group.Representative.NoteNumber;
+            sample.RepresentativeTrackIndex = group.Representative.TrackIndex;
+            sample.OutputNote = result.BuiltNotes[i];
             result.TransformationSamples.Add(sample);
         }
     }
@@ -262,12 +243,12 @@ public class ChartBuilder
     private class PreparedTickGroup
     {
         public readonly long Tick;
-        public readonly List<MidiExtractedNote> Notes;
+        public readonly MidiExtractedNote Representative;
 
-        public PreparedTickGroup(long tick, List<MidiExtractedNote> notes)
+        public PreparedTickGroup(long tick, MidiExtractedNote representative)
         {
             Tick = tick;
-            Notes = notes;
+            Representative = representative;
         }
     }
 }
@@ -286,10 +267,11 @@ public class ChartBuildStatistics
     public int ExactDuplicatesRemoved;
     public int UniqueMidiNoteCount;
     public int TickGroupCount;
-    public int ChordGroupCount;
-    public int LargestChordSize;
-    public int GroupsExceedingLaneCount;
-    public int NotesDroppedByLaneLimit;
+    public int MultiPitchGroupCount;
+    public int LargestSourceGroupSize;
+    public int RepresentativeNoteCount;
+    public int PreferredTrackSelectionCount;
+    public int FallbackSelectionCount;
     public int GameplayNoteCount;
     public int[] LaneCounts = new int[ChartBuilder.LaneCount];
     public double FirstHitTime;
@@ -300,6 +282,7 @@ public class ChartBuiltNote
 {
     public long Tick;
     public int NoteNumber;
+    public int TrackIndex;
     public int Lane;
     public double HitTime;
 }
@@ -309,6 +292,7 @@ public class ChartTransformationSample
     public long Tick;
     public List<int> RawPitches { get; } = new();
     public List<int> UniquePitches { get; } = new();
-    public List<int> SelectedPitches { get; } = new();
-    public List<ChartBuiltNote> OutputNotes { get; } = new();
+    public int RepresentativePitch;
+    public int RepresentativeTrackIndex;
+    public ChartBuiltNote OutputNote;
 }

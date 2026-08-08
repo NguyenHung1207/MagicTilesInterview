@@ -32,13 +32,6 @@ public class ChartValidator
         ValidateRuntimeNotes(chart.notes, result);
         ValidateBuildContext(buildResult, result);
 
-        if (buildResult.Statistics.NotesDroppedByLaneLimit > 0)
-        {
-            result.Warnings.Add(
-                $"Dropped {buildResult.Statistics.NotesDroppedByLaneLimit} MIDI notes " +
-                "from chords exceeding the four-lane limit.");
-        }
-
         return result;
     }
 
@@ -47,7 +40,7 @@ public class ChartValidator
         ChartValidationResult result)
     {
         double previousHitTime = double.NegativeInfinity;
-        var hitTimeLanePairs = new HashSet<(double HitTime, int Lane)>();
+        var hitTimes = new HashSet<double>();
 
         for (int i = 0; i < notes.Count; i++)
         {
@@ -82,10 +75,10 @@ public class ChartValidator
                 previousHitTime = note.hitTime;
             }
 
-            if (!hitTimeLanePairs.Add((note.hitTime, note.lane)))
+            if (!hitTimes.Add(note.hitTime))
             {
                 result.Errors.Add(
-                    $"Duplicate gameplay note at hitTime={note.hitTime}, lane={note.lane}.");
+                    $"More than one gameplay note exists at hitTime={note.hitTime}.");
             }
         }
     }
@@ -99,13 +92,24 @@ public class ChartValidator
             result.Errors.Add("Build context count does not match generated chart note count.");
         }
 
-        var tickLanePairs = new HashSet<(long Tick, int Lane)>();
+        if (buildResult.Statistics.RepresentativeNoteCount !=
+            buildResult.Statistics.TickGroupCount)
+        {
+            result.Errors.Add("Representative note count does not match unique Tick group count.");
+        }
+
+        if (buildResult.Chart.notes.Count != buildResult.Statistics.TickGroupCount)
+        {
+            result.Errors.Add("Gameplay note count does not match unique Tick group count.");
+        }
+
+        var ticks = new HashSet<long>();
         foreach (ChartBuiltNote note in buildResult.BuiltNotes)
         {
-            if (!tickLanePairs.Add((note.Tick, note.Lane)))
+            if (!ticks.Add(note.Tick))
             {
                 result.Errors.Add(
-                    $"Duplicate gameplay lane {note.Lane} at MIDI tick {note.Tick}.");
+                    $"More than one gameplay note exists at MIDI Tick {note.Tick}.");
             }
         }
     }
