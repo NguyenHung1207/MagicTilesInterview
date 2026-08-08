@@ -4,8 +4,12 @@ using UnityEngine;
 public class LaneFlashController : MonoBehaviour
 {
     [SerializeField] private SpriteRenderer[] laneFlashes;
-    [SerializeField] private float flashDuration = 0.15f;
-    [SerializeField] private float flashAlpha = 0.55f;
+    [SerializeField] private Color perfectColor = new Color(1f, 0.78f, 0.2f, 0.75f);
+    [SerializeField] private Color greatColor = new Color(0.2f, 0.75f, 1f, 0.60f);
+    [SerializeField] private Color goodColor = new Color(0.35f, 1f, 0.5f, 0.40f);
+    [SerializeField] private float perfectDuration = 0.20f;
+    [SerializeField] private float greatDuration = 0.16f;
+    [SerializeField] private float goodDuration = 0.12f;
 
     private Coroutine[] flashCoroutines;
 
@@ -15,7 +19,10 @@ public class LaneFlashController : MonoBehaviour
 
         foreach (SpriteRenderer flash in laneFlashes)
         {
-            SetAlpha(flash, 0f);
+            Color color = flash.color;
+            color.a = 0f;
+            flash.color = color;
+
             flash.gameObject.SetActive(true);
         }
     }
@@ -28,6 +35,27 @@ public class LaneFlashController : MonoBehaviour
     private void OnDisable()
     {
         Note.HitSucceeded -= HandleHit;
+
+        if (flashCoroutines == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < flashCoroutines.Length; i++)
+        {
+            if (flashCoroutines[i] != null)
+            {
+                StopCoroutine(flashCoroutines[i]);
+                flashCoroutines[i] = null;
+            }
+
+            if (laneFlashes[i] != null)
+            {
+                Color color = laneFlashes[i].color;
+                color.a = 0f;
+                laneFlashes[i].color = color;
+            }
+        }
     }
 
     private void HandleHit(int laneIndex, HitJudgement judgement)
@@ -42,35 +70,60 @@ public class LaneFlashController : MonoBehaviour
             StopCoroutine(flashCoroutines[laneIndex]);
         }
 
-        flashCoroutines[laneIndex] =
-            StartCoroutine(FlashLane(laneIndex));
+        Color flashColor;
+        float duration;
+
+        switch (judgement)
+        {
+            case HitJudgement.Perfect:
+                flashColor = perfectColor;
+                duration = perfectDuration;
+                break;
+
+            case HitJudgement.Great:
+                flashColor = greatColor;
+                duration = greatDuration;
+                break;
+
+            case HitJudgement.Good:
+                flashColor = goodColor;
+                duration = goodDuration;
+                break;
+
+            default:
+                return;
+        }
+
+    flashCoroutines[laneIndex] = StartCoroutine(FlashLane(laneIndex, flashColor, duration));
     }
 
-    private IEnumerator FlashLane(int laneIndex)
+    private IEnumerator FlashLane(int laneIndex, Color flashColor, float duration)
     {
         SpriteRenderer flash = laneFlashes[laneIndex];
 
-        SetAlpha(flash, flashAlpha);
+        float startAlpha = flashColor.a;
+        SetColor(flash, flashColor, startAlpha);
 
         float elapsed = 0f;
 
-        while (elapsed < flashDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
 
-            float t = elapsed / flashDuration;
-            SetAlpha(flash, Mathf.Lerp(flashAlpha, 0f, t));
+            float t = Mathf.Clamp01(elapsed / duration);
+            float alpha = Mathf.Lerp(startAlpha, 0f, t);
+
+            SetColor(flash, flashColor, alpha);
 
             yield return null;
         }
 
-        SetAlpha(flash, 0f);
+        SetColor(flash, flashColor, 0f);
         flashCoroutines[laneIndex] = null;
     }
 
-    private void SetAlpha(SpriteRenderer renderer, float alpha)
+    private void SetColor(SpriteRenderer renderer, Color color, float alpha)
     {
-        Color color = renderer.color;
         color.a = alpha;
         renderer.color = color;
     }
