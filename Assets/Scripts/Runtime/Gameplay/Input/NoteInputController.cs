@@ -19,11 +19,21 @@ public class NoteInputController : MonoBehaviour
     {
         if (Input.touchCount > 0)
         {
-            Touch touch = Input.GetTouch(0);
-
-            if (touch.phase == TouchPhase.Began)
+            for (int i = 0; i < Input.touchCount; i++)
             {
+                Touch touch = Input.GetTouch(i);
+
+                if (touch.phase != TouchPhase.Began)
+                {
+                    continue;
+                }
+
                 TryHitAtScreenPosition(touch.position);
+
+                if (!enabled)
+                {
+                    return;
+                }
             }
 
             return;
