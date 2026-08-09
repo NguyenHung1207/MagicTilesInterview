@@ -10,6 +10,21 @@ public class GameplayHUD : MonoBehaviour
 
     [SerializeField] private TMP_Text judgementText;
     [SerializeField] private float judgementDisplayDuration = 0.45f;
+    [SerializeField] private Color perfectColor = new Color(1f, 0.78f, 0.2f);
+    [SerializeField] private Color greatColor = new Color(0.2f, 0.75f, 1f);
+
+    [SerializeField] private Color goodColor = new Color(0.35f, 1f, 0.5f);
+    [SerializeField] private float judgementPunchDuration = 0.14f;
+    [SerializeField] private float comboPunchDuration = 0.14f;
+    [SerializeField] private float scorePunchDuration = 0.1f;
+
+    [SerializeField] private float judgementStartScale = 0.8f;
+    [SerializeField] private float judgementPeakScale = 1.15f;
+
+    [SerializeField] private float comboStartScale = 0.85f;
+    [SerializeField] private float comboPeakScale = 1.2f;
+
+    [SerializeField] private float scorePeakScale = 1.08f;
     [SerializeField] private GameplayController gameplayController;
 
     [SerializeField] private GameObject gameOverPanel;
@@ -46,8 +61,15 @@ public class GameplayHUD : MonoBehaviour
 
     private void UpdateScore(int score, int combo)
     {
-        scoreText.text = $"Score: {score}";
-        comboText.text = $"Combo: {combo}";
+        scoreText.text = score.ToString();
+
+        bool hasCombo = combo > 0;
+        comboText.gameObject.SetActive(hasCombo);
+
+        if (hasCombo)
+        {
+            comboText.text = $"x{combo}";
+        }
     }
 
     private void Start()
@@ -64,13 +86,23 @@ public class GameplayHUD : MonoBehaviour
             return;
         }
 
-        judgementText.text = judgement switch
+        switch (judgement)
         {
-            HitJudgement.Perfect => "PERFECT",
-            HitJudgement.Great => "GREAT",
-            HitJudgement.Good => "GOOD",
-            _ => string.Empty
-        };
+            case HitJudgement.Perfect:
+                judgementText.text = "PERFECT";
+                judgementText.color = perfectColor;
+                break;
+
+            case HitJudgement.Great:
+                judgementText.text = "GREAT";
+                judgementText.color = greatColor;
+                break;
+
+            case HitJudgement.Good:
+                judgementText.text = "GOOD";
+                judgementText.color = goodColor;
+                break;
+        }
 
         judgementText.gameObject.SetActive(true);
 
