@@ -4336,6 +4336,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1991870105}
+  - component: {fileID: 1991870106}
   m_Layer: 0
   m_Name: GameplayVisual
   m_TagString: Untagged
@@ -4362,6 +4363,44 @@ Transform:
   - {fileID: 333511136}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1991870106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1991870104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95a327ad2b824c67a0ea7a5c983347f1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  targetCamera: {fileID: 519420031}
+  referenceWidth: 1080
+  referenceHeight: 1920
+  referenceOrthographicSize: 5
+  spawnPoints:
+  - {fileID: 1749216035}
+  - {fileID: 368787904}
+  - {fileID: 1429812466}
+  - {fileID: 1358475886}
+  hitPoints:
+  - {fileID: 1774577659}
+  - {fileID: 2067117503}
+  - {fileID: 1282752090}
+  - {fileID: 670883809}
+  spawnViewportY: 1.05
+  hitViewportY: 0.1
+  backgroundBaseRenderer: {fileID: 1419813724}
+  laneFlashRenderers:
+  - {fileID: 1871236964}
+  - {fileID: 1438588429}
+  - {fileID: 643782308}
+  - {fileID: 1508533113}
+  separatorRenderers:
+  - {fileID: 1031632955}
+  - {fileID: 346510866}
+  - {fileID: 969234535}
 --- !u!1 &2067117502
 GameObject:
   m_ObjectHideFlags: 0
