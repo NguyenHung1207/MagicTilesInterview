@@ -380,6 +380,14 @@ MonoBehaviour:
   perfectColor: {r: 1, g: 0.78, b: 0.2, a: 1}
   greatColor: {r: 0.2, g: 0.75, b: 1, a: 1}
   goodColor: {r: 0.35, g: 1, b: 0.5, a: 1}
+  judgementPunchDuration: 0.14
+  comboPunchDuration: 0.14
+  scorePunchDuration: 0.1
+  judgementStartScale: 0.8
+  judgementPeakScale: 1.15
+  comboStartScale: 0.85
+  comboPeakScale: 1.2
+  scorePeakScale: 1.08
   gameplayController: {fileID: 1337424189}
   gameOverPanel: {fileID: 1133431743}
   gameOverFinalScoreText: {fileID: 1895896583}
@@ -1476,7 +1484,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: GREAT
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: b1f2b7388b57e0346989aa8203e9fa94, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -1540,7 +1548,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &543050581
@@ -3137,8 +3145,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: x32
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: c5d1e940dd661b54fb2e7bdd5706eaa5, type: 2}
+  m_sharedMaterial: {fileID: 2253639955142393946, guid: c5d1e940dd661b54fb2e7bdd5706eaa5, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3162,8 +3170,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 75
-  m_fontSizeBase: 75
+  m_fontSize: 82
+  m_fontSizeBase: 82
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -4256,10 +4264,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 141
+  m_text: 149
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 9952d1a500549f14fa285b6339d4f10c, type: 2}
+  m_sharedMaterial: {fileID: 4036206823794478719, guid: 9952d1a500549f14fa285b6339d4f10c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

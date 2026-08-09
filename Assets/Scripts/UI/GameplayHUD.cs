@@ -32,6 +32,8 @@ public class GameplayHUD : MonoBehaviour
 
     [SerializeField] private GameObject winPanel;
     [SerializeField] private TMP_Text winFinalScoreText;
+    private Coroutine comboCoroutine;
+    private Vector3 comboBaseScale;
 
     private Coroutine hideJudgementCoroutine;
     
@@ -70,6 +72,11 @@ public class GameplayHUD : MonoBehaviour
         {
             comboText.text = $"x{combo}";
         }
+    }
+
+    private void Awake()
+    {
+        comboBaseScale = comboText.transform.localScale;
     }
 
     private void Start()
