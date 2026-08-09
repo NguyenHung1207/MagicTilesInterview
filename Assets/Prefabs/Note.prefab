@@ -98,6 +98,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7dd520508ba146d44ba90db9f76aadb1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  noteRenderer: {fileID: 432773565827249893}
+  hitCollider: {fileID: 8298684201956948176}
+  resolvedAlpha: 0.25
+  resolvedCleanupProgress: 1.2
 --- !u!61 &8298684201956948176
 BoxCollider2D:
   m_ObjectHideFlags: 0

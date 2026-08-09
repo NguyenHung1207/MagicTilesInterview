@@ -12,6 +12,15 @@ public class Note : MonoBehaviour
     public static event Action<int, HitJudgement, Vector3> HitSucceeded;
     private const double MissDelay = 0.15;
     private bool isResolved;
+
+    [SerializeField] private SpriteRenderer noteRenderer;
+    [SerializeField] private Collider2D hitCollider;
+
+    [SerializeField, Range(0f, 1f)]
+    private float resolvedAlpha = 0.25f;
+
+    [SerializeField]
+    private float resolvedCleanupProgress = 1.2f;
     public static event Action<HitJudgement> Judged;
     public void Initialize(SongConductor conductor, Vector3 startPosition, Vector3 targetPosition, double noteSpawnTime, double noteHitTime, int laneIndex)
     {
@@ -29,11 +38,19 @@ public class Note : MonoBehaviour
         double currentSongTime = songConductor.SongTime;
         double progress = (currentSongTime - spawnTime) / (hitTime - spawnTime);
 
-        float t = Mathf.Clamp01((float)progress);
+        transform.position = Vector3.LerpUnclamped(spawnPosition, hitPosition, (float)progress);
 
-        transform.position = Vector3.Lerp(spawnPosition, hitPosition, t);
+        if (isResolved)
+        {
+            if (progress >= resolvedCleanupProgress)
+            {
+                Destroy(gameObject);
+            }
 
-        if (!isResolved && currentSongTime > hitTime + MissDelay)
+            return;
+        }
+
+        if (currentSongTime > hitTime + MissDelay)
         {
             isResolved = true;
             Debug.Log("Miss", this);
@@ -50,21 +67,35 @@ public class Note : MonoBehaviour
         }
         HitJudgement judgement = HitPositionJudge.Evaluate(transform.position.y, hitPosition.y);
         isResolved = true;
+
+        SetResolvedVisual();
+
         Debug.Log(judgement, this);
         Judged?.Invoke(judgement);
         HitSucceeded?.Invoke(laneIndex, judgement, transform.position);
-        Destroy(gameObject);
 
         return judgement;
     }
 
-    public void Cancel()
+    private void SetResolvedVisual()
     {
-        if (isResolved)
+        if (hitCollider != null)
+        {
+            hitCollider.enabled = false;
+        }
+
+        if (noteRenderer == null)
         {
             return;
         }
 
+        Color color = noteRenderer.color;
+        color.a = resolvedAlpha;
+        noteRenderer.color = color;
+    }
+
+    public void Cancel()
+    {
         isResolved = true;
         Destroy(gameObject);
     }
