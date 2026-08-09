@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b95e06a87d9733f4db20c476b9760b30, type: 3}
+  m_Name: DemoSong
+  m_EditorClassIdentifier: 
+  songId: demo_song
+  displayName: 'Demo Song '
+  artist: Unknown
+  audioClip: {fileID: 8300000, guid: cd1621e4dde12db4eb8c01f4b0f4fd64, type: 3}
+  chartAsset: {fileID: 4900000, guid: d2783314306b4ee48ba68c74c9db236c, type: 3}
+  coverSprite: {fileID: 0}
