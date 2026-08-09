@@ -34,6 +34,9 @@ public class GameplayHUD : MonoBehaviour
     [SerializeField] private TMP_Text winFinalScoreText;
     private Coroutine comboCoroutine;
     private Vector3 comboBaseScale;
+    private Coroutine scoreCoroutine;
+    private Vector3 scoreBaseScale;
+    private int displayedScore;
 
     private Coroutine hideJudgementCoroutine;
     
@@ -53,6 +56,22 @@ public class GameplayHUD : MonoBehaviour
             hideJudgementCoroutine = null;
         }
 
+        if (comboCoroutine != null)
+        {
+            StopCoroutine(comboCoroutine);
+            comboCoroutine = null;
+        }
+
+        comboText.transform.localScale = comboBaseScale;
+
+        if (scoreCoroutine != null)
+        {
+            StopCoroutine(scoreCoroutine);
+            scoreCoroutine = null;
+        }
+
+        scoreText.transform.localScale = scoreBaseScale;
+
         judgementText.gameObject.SetActive(false);
 
         scoreManager.ScoreChanged -= UpdateScore;
@@ -63,7 +82,16 @@ public class GameplayHUD : MonoBehaviour
 
     private void UpdateScore(int score, int combo)
     {
+        bool scoreIncreased = score > displayedScore;
+
         scoreText.text = score.ToString();
+
+        if (scoreIncreased)
+        {
+            PlayScorePunch();
+        }
+
+        displayedScore = score;
 
         bool hasCombo = combo > 0;
         comboText.gameObject.SetActive(hasCombo);
@@ -71,17 +99,107 @@ public class GameplayHUD : MonoBehaviour
         if (hasCombo)
         {
             comboText.text = $"x{combo}";
+            PlayComboPunch();
         }
+        else
+        {
+            if (comboCoroutine != null)
+            {
+                StopCoroutine(comboCoroutine);
+                comboCoroutine = null;
+            }
+
+            comboText.transform.localScale = comboBaseScale;
+        }
+    }
+
+    private void PlayComboPunch()
+    {
+        if (comboCoroutine != null)
+        {
+            StopCoroutine(comboCoroutine);
+        }
+
+        comboCoroutine = StartCoroutine(ComboPunchRoutine());
+    }
+    private void PlayScorePunch()
+    {
+        if (scoreCoroutine != null)
+        {
+            StopCoroutine(scoreCoroutine);
+        }
+
+        scoreCoroutine = StartCoroutine(ScorePunchRoutine());
+    }
+
+    private IEnumerator ScorePunchRoutine()
+    {
+        yield return PunchScale(scoreText.transform, scoreBaseScale, 1f, scorePeakScale, scorePunchDuration);
+        scoreCoroutine = null;
+    }
+
+    private IEnumerator ComboPunchRoutine()
+    {
+        yield return PunchScale(comboText.transform, comboBaseScale, comboStartScale, comboPeakScale, comboPunchDuration);
+
+        comboCoroutine = null;
+    }
+
+    private IEnumerator PunchScale(Transform target, Vector3 baseScale, float startMultiplier, float peakMultiplier, float duration)
+    {
+        float growDuration = duration * 0.4f;
+        float settleDuration = duration - growDuration;
+
+        Vector3 startScale = baseScale * startMultiplier;
+        Vector3 peakScale = baseScale * peakMultiplier;
+
+        target.localScale = startScale;
+
+        float elapsed = 0f;
+
+        while (elapsed < growDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t = Mathf.Clamp01(elapsed / growDuration);
+            t = Mathf.SmoothStep(0f, 1f, t);
+
+            target.localScale =
+                Vector3.Lerp(startScale, peakScale, t);
+
+            yield return null;
+        }
+
+        elapsed = 0f;
+
+        while (elapsed < settleDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t = Mathf.Clamp01(elapsed / settleDuration);
+            t = Mathf.SmoothStep(0f, 1f, t);
+
+            target.localScale =
+                Vector3.Lerp(peakScale, baseScale, t);
+
+            yield return null;
+        }
+
+        target.localScale = baseScale;
     }
 
     private void Awake()
     {
         comboBaseScale = comboText.transform.localScale;
+        scoreBaseScale = scoreText.transform.localScale;
     }
 
     private void Start()
     {
+        displayedScore = scoreManager.Score;
+
         UpdateScore(scoreManager.Score, scoreManager.Combo);
+
         gameOverPanel.SetActive(false);
         winPanel.SetActive(false);
     }
