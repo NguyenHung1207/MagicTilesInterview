@@ -5,13 +5,14 @@ public class GameplaySongLoader : MonoBehaviour
     [SerializeField] private SongDefinition defaultSong;
     [SerializeField] private SongConductor songConductor;
     [SerializeField] private JsonChartLoader chartLoader;
+    [SerializeField] private DynamicBackgroundController backgroundController;
 
     private void Awake()
     {
-        if (songConductor == null || chartLoader == null)
+        if (songConductor == null || chartLoader == null || backgroundController == null)
         {
             Debug.LogError(
-                "GameplaySongLoader requires SongConductor and JsonChartLoader references.",
+                "GameplaySongLoader requires SongConductor, JsonChartLoader, and DynamicBackgroundController references.",
                 this);
             enabled = false;
             return;
@@ -31,5 +32,6 @@ public class GameplaySongLoader : MonoBehaviour
 
         songConductor.SetSong(song.AudioClip);
         chartLoader.Load(song.ChartAsset);
+        backgroundController.ApplyTheme(song.BackgroundTheme);
     }
 }
