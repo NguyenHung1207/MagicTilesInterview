@@ -29,6 +29,12 @@ public class SongConductor : MonoBehaviour
     }
     private void StartSong()
     {
+        if (musicSource.clip == null)
+        {
+            Debug.LogError("SongConductor requires an AudioClip.", this);
+            return;
+        }
+
         // Schedule slightly ahead so the audio system can prepare playback.
         songStartDspTime = AudioSettings.dspTime + startDelay;
         musicSource.PlayScheduled(songStartDspTime);
@@ -69,8 +75,8 @@ public class SongConductor : MonoBehaviour
         }
     }
 
-    void Update()
+    public void SetSong(AudioClip clip)
     {
-
+        musicSource.clip = clip;
     }
 }

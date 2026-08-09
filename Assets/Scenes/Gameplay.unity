@@ -1053,7 +1053,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: cd1621e4dde12db4eb8c01f4b0f4fd64, type: 3}
+  m_audioClip: {fileID: 0}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -2268,6 +2268,7 @@ GameObject:
   - component: {fileID: 1337424187}
   - component: {fileID: 1337424188}
   - component: {fileID: 1337424189}
+  - component: {fileID: 1337424190}
   m_Layer: 0
   m_Name: GameplaySystems
   m_TagString: Untagged
@@ -2330,6 +2331,21 @@ MonoBehaviour:
   songConductor: {fileID: 443467383}
   noteSpawner: {fileID: 345622418}
   inputController: {fileID: 1337424187}
+--- !u!114 &1337424190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1337424185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65370169f77fad34f9bf00a66c3050c1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  defaultSong: {fileID: 11400000, guid: 716198a0834c7244288409b8eba59f99, type: 2}
+  songConductor: {fileID: 443467383}
+  chartLoader: {fileID: 1854647437}
 --- !u!1 &1358475885
 GameObject:
   m_ObjectHideFlags: 0
@@ -3161,7 +3177,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4073bc8bfd66d704db19f7720555e4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chartAsset: {fileID: 4900000, guid: d2783314306b4ee48ba68c74c9db236c, type: 3}
 --- !u!1 &1871236962
 GameObject:
   m_ObjectHideFlags: 0

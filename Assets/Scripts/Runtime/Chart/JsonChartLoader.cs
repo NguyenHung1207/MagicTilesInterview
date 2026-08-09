@@ -3,29 +3,33 @@ using UnityEngine;
 
 public class JsonChartLoader : MonoBehaviour
 {
-    [SerializeField] private TextAsset chartAsset;
     private readonly List<NoteData> notes = new();
     public IReadOnlyList<NoteData> Notes => notes;
 
-    private void Awake()
+    public void Load(TextAsset asset)
     {
-        if (chartAsset == null)
+        if (asset == null)
         {
             Debug.LogError("JsonChartLoader requires a chart asset.", this);
             return;
         }
 
-        SongChartData chartData = JsonUtility.FromJson<SongChartData>(chartAsset.text);
-
-        if (chartData == null || chartData.notes == null)
+        SongChartData chartData;
+        try
         {
-            Debug.LogError("Failed to load chart data.", this);
+            chartData = JsonUtility.FromJson<SongChartData>(asset.text);
+        }
+        catch (System.ArgumentException exception)
+        {
+            Debug.LogError($"Failed to parse chart JSON: {exception.Message}", this);
             return;
         }
 
-        if (chartData.notes.Count == 0)
+        if (chartData == null ||
+            chartData.notes == null ||
+            chartData.notes.Count == 0)
         {
-            Debug.LogError("Loaded chart contains no gameplay notes.", this);
+            Debug.LogError("Chart contains no gameplay notes.", this);
             return;
         }
 
