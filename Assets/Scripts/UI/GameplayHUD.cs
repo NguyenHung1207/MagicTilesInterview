@@ -9,12 +9,13 @@ public class GameplayHUD : MonoBehaviour
     [SerializeField] private TMP_Text comboText;
 
     [SerializeField] private TMP_Text judgementText;
-    [SerializeField] private float judgementDisplayDuration = 0.45f;
+    [SerializeField] private float judgementDisplayDuration = 0.3f;
     [SerializeField] private Color perfectColor = new Color(1f, 0.78f, 0.2f);
     [SerializeField] private Color greatColor = new Color(0.2f, 0.75f, 1f);
 
     [SerializeField] private Color goodColor = new Color(0.35f, 1f, 0.5f);
     [SerializeField] private float judgementPunchDuration = 0.14f;
+    [SerializeField] private float judgementFadeDuration = 0.12f;
     [SerializeField] private float comboPunchDuration = 0.14f;
     [SerializeField] private float scorePunchDuration = 0.1f;
 
@@ -37,8 +38,8 @@ public class GameplayHUD : MonoBehaviour
     private Coroutine scoreCoroutine;
     private Vector3 scoreBaseScale;
     private int displayedScore;
-
-    private Coroutine hideJudgementCoroutine;
+    private Coroutine judgementCoroutine;
+    private Vector3 judgementBaseScale;
     
     private void OnEnable()
     {
@@ -50,11 +51,19 @@ public class GameplayHUD : MonoBehaviour
 
     private void OnDisable()
     {
-        if (hideJudgementCoroutine != null)
+        if (judgementCoroutine != null)
         {
-            StopCoroutine(hideJudgementCoroutine);
-            hideJudgementCoroutine = null;
+            StopCoroutine(judgementCoroutine);
+            judgementCoroutine = null;
         }
+
+        judgementText.transform.localScale = judgementBaseScale;
+
+        Color judgementColor = judgementText.color;
+        judgementColor.a = 1f;
+        judgementText.color = judgementColor;
+
+        judgementText.gameObject.SetActive(false);
 
         if (comboCoroutine != null)
         {
@@ -71,8 +80,6 @@ public class GameplayHUD : MonoBehaviour
         }
 
         scoreText.transform.localScale = scoreBaseScale;
-
-        judgementText.gameObject.SetActive(false);
 
         scoreManager.ScoreChanged -= UpdateScore;
         Note.Judged -= ShowJudgement;
@@ -163,9 +170,7 @@ public class GameplayHUD : MonoBehaviour
 
             float t = Mathf.Clamp01(elapsed / growDuration);
             t = Mathf.SmoothStep(0f, 1f, t);
-
-            target.localScale =
-                Vector3.Lerp(startScale, peakScale, t);
+            target.localScale = Vector3.Lerp(startScale, peakScale, t);
 
             yield return null;
         }
@@ -179,8 +184,7 @@ public class GameplayHUD : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / settleDuration);
             t = Mathf.SmoothStep(0f, 1f, t);
 
-            target.localScale =
-                Vector3.Lerp(peakScale, baseScale, t);
+            target.localScale = Vector3.Lerp(peakScale, baseScale, t);
 
             yield return null;
         }
@@ -192,6 +196,7 @@ public class GameplayHUD : MonoBehaviour
     {
         comboBaseScale = comboText.transform.localScale;
         scoreBaseScale = scoreText.transform.localScale;
+        judgementBaseScale = judgementText.transform.localScale;
     }
 
     private void Start()
@@ -229,22 +234,52 @@ public class GameplayHUD : MonoBehaviour
                 break;
         }
 
-        judgementText.gameObject.SetActive(true);
-
-        if (hideJudgementCoroutine != null)
+        if (judgementCoroutine != null)
         {
-            StopCoroutine(hideJudgementCoroutine);
+            StopCoroutine(judgementCoroutine);
         }
 
-        hideJudgementCoroutine = StartCoroutine(HideJudgementAfterDelay());
+        judgementCoroutine = StartCoroutine(AnimateJudgement());
     }
 
-    private IEnumerator HideJudgementAfterDelay()
+    private IEnumerator AnimateJudgement()
     {
+        judgementText.gameObject.SetActive(true);
+
+        Color color = judgementText.color;
+        color.a = 1f;
+        judgementText.color = color;
+
+        yield return PunchScale(judgementText.transform, judgementBaseScale, judgementStartScale, judgementPeakScale, judgementPunchDuration);
+
         yield return new WaitForSeconds(judgementDisplayDuration);
 
+        float elapsed = 0f;
+        Color startColor = judgementText.color;
+
+        while (elapsed < judgementFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t = Mathf.Clamp01(elapsed / judgementFadeDuration);
+
+            Color currentColor = startColor;
+            currentColor.a = Mathf.Lerp(1f, 0f, t);
+
+            judgementText.color = currentColor;
+
+            yield return null;
+        }
+
         judgementText.gameObject.SetActive(false);
-        hideJudgementCoroutine = null;
+
+        Color resetColor = judgementText.color;
+        resetColor.a = 1f;
+        judgementText.color = resetColor;
+
+        judgementText.transform.localScale = judgementBaseScale;
+
+        judgementCoroutine = null;
     }
 
     private void ShowGameOver()
