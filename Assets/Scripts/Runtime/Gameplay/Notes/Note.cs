@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class Note : MonoBehaviour
 {
@@ -18,6 +19,8 @@ public class Note : MonoBehaviour
 
     [SerializeField, Range(0f, 1f)]
     private float resolvedAlpha = 0.25f;
+    [SerializeField]
+    private float hitFadeDuration = 0.12f;
 
     [SerializeField]
     private float resolvedCleanupProgress = 1.2f;
@@ -84,12 +87,32 @@ public class Note : MonoBehaviour
             hitCollider.enabled = false;
         }
 
-        if (noteRenderer == null)
+        if (noteRenderer != null)
         {
-            return;
+            StartCoroutine(FadeResolvedVisual());
+        }
+    }
+
+    private IEnumerator FadeResolvedVisual()
+    {
+        Color color = noteRenderer.color;
+        float startAlpha = color.a;
+
+        float elapsed = 0f;
+
+        while (elapsed < hitFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t = Mathf.Clamp01(elapsed / hitFadeDuration);
+
+            color.a = Mathf.Lerp(startAlpha, resolvedAlpha,t);
+
+            noteRenderer.color = color;
+
+            yield return null;
         }
 
-        Color color = noteRenderer.color;
         color.a = resolvedAlpha;
         noteRenderer.color = color;
     }
