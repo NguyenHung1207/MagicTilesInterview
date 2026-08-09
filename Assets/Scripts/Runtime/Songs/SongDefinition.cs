@@ -9,6 +9,7 @@ public class SongDefinition : ScriptableObject
     [SerializeField] private AudioClip audioClip;
     [SerializeField] private TextAsset chartAsset;
     [SerializeField] private Sprite coverSprite;
+    [SerializeField] private BackgroundTheme backgroundTheme;
 
     public string SongId => songId;
     public string DisplayName => displayName;
@@ -16,4 +17,5 @@ public class SongDefinition : ScriptableObject
     public AudioClip AudioClip => audioClip;
     public TextAsset ChartAsset => chartAsset;
     public Sprite CoverSprite => coverSprite;
+    public BackgroundTheme BackgroundTheme => backgroundTheme;
 }
