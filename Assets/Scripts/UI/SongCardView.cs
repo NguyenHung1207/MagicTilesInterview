@@ -7,6 +7,7 @@ public class SongCardView : MonoBehaviour
 {
     [SerializeField] private Button button;
     [SerializeField] private Image coverImage;
+    [SerializeField] private GameObject coverFallback;
     [SerializeField] private TMP_Text songNameText;
     [SerializeField] private TMP_Text artistText;
     [SerializeField] private Color placeholderCoverColor = new(0.16f, 0.22f, 0.34f, 1f);
@@ -30,6 +31,10 @@ public class SongCardView : MonoBehaviour
         artistText.text = song.Artist;
         coverImage.sprite = song.CoverSprite;
         coverImage.color = song.CoverSprite != null ? Color.white : placeholderCoverColor;
+        if (coverFallback != null)
+        {
+            coverFallback.SetActive(song.CoverSprite == null);
+        }
 
         button.onClick.RemoveListener(HandleClick);
         button.onClick.AddListener(HandleClick);
