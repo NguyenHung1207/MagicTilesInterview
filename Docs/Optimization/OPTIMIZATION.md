@@ -185,11 +185,11 @@ The table below records the representative 0.22-second Frame Debugger frame. Ver
 | PerfectLevel1 | 4 | `lines` MAIN | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 16 / 24 | Different material |
 | PerfectLevel1 | 5 | `lines` TRAIL | `triangle_2` | Mobile Additive / `fx_circle_line2` | 1 | 136 / 384 | Trail topology |
 | PerfectLevel1 | 6–7 | `triangle`, `init` MAIN | `triangle`, `explode0` | Different shaders/textures | 2 | 28 / 42; 4 / 6 | Different materials |
-| PerfectLevel2 | 1–5 | Same PL1 front layers and `lines` MAIN/TRAIL | Mixed | Mixed | 5 | Trail: 216 / 624 | Materials/topology |
+| PerfectLevel2 | 1–5 | Same PL1 front layers and `lines` MAIN/TRAIL | Mixed | Mixed | 5 | Trail: 224 / 648 | Materials/topology |
 | PerfectLevel2 | 6 | `rain3 + rain4` MAIN, baseline | `triangle_1` | Mobile Additive / `top_tile_short` | **2** | 16 / 24 | Two compatible renderers in one dynamic group |
 | PerfectLevel2 | 7–8 | `triangle`, `init` MAIN | Mixed | Mixed | 2 | 28 / 42; 4 / 6 | Different materials |
 | PerfectLevel3 | 1–3 | `glow`, `outline_circle`, `outline_line` MAIN | Mixed | Mixed | 3 | 4 / 6 each | Different materials |
-| PerfectLevel3 | 4 | `lines` TRAIL | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 168 / 468 | Trail topology |
+| PerfectLevel3 | 4 | `lines` TRAIL | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 282 / 810 | Trail topology |
 | PerfectLevel3 | 5 | `lines` MAIN | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 24 / 36 | Different vertex stream/batching key |
 | PerfectLevel3 | 6 | `rain3 + rain4` MAIN, baseline | `triangle_1` | Mobile Additive / `top_tile_short` | **2** | 16 / 24 | Two compatible renderers |
 | PerfectLevel3 | 7–8 | `triangle`, `init` MAIN | Mixed | Mixed | 2 | 28 / 42; 4 / 6 | Different materials |
