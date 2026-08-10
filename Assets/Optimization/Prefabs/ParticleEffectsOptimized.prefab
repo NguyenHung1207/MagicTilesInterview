@@ -96844,7 +96844,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    minVertexDistance: 0.2
+    minVertexDistance: 0.4
     textureMode: 0
     textureScale: {x: 1, y: 1}
     ribbonCount: 1
@@ -121299,7 +121299,7 @@ ParticleSystem:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    minVertexDistance: 0.2
+    minVertexDistance: 0.4
     textureMode: 0
     textureScale: {x: 1, y: 1}
     ribbonCount: 1
