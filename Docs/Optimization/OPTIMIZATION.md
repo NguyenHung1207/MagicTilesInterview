@@ -45,13 +45,26 @@ In the optimized prefab, `rain4` still simulates with its original transform, sh
 
 PerfectLevel1 did not contain the mirrored rain pair. Its remaining submissions represented different textures, visual layers, or main-versus-trail topology. No tested low-risk structural change reduced Draw Calls without changing the effect, so it remains at 7 Draw Calls.
 
+### Cross-variant review
+
+I profiled all four variants before selecting PerfectLevel3 as the primary investigation target. It tied for the highest Draw Call count and had the largest geometry workload. I then checked each successful technique against the other variants instead of applying it blindly. Renderer consolidation also fit PerfectLevel2 because it contained the same mirrored `rain3/rain4` structure; it did not fit PerfectLevel1, and the different Transition zap/trail structure failed visual validation. The trail-spacing technique was separately tested on the structurally similar `lines` trails in PerfectLevel1 and PerfectLevel2 and was retained only after each produced a measurable geometry reduction without changing its draw-state counters.
+
 ## 4. Changes Retained
 
-### PerfectLevel3 trail tessellation
+### Trail tessellation
 
 Frame Debugger showed that the `PerfectLevel3/lines` trail was the largest geometry contributor. I increased Trails > Minimum Vertex Distance from 0.2 to 0.4, allowing Unity to add trail vertices less frequently while preserving the same material, timing, and overall path.
 
 The measured peak geometry changed from 424 to approximately 244 triangles and from 472 to approximately 292 vertices, reductions of about 42% and 38% respectively. Draw Calls remained unchanged. The setting was retained because the geometry reduction was measurable and manual playback did not show an unacceptable change in the trail.
+
+PerfectLevel1 and PerfectLevel2 use the same relevant local-space, single-ribbon Stretch trail structure, although their trail material and Size Affects Width setting differ from PerfectLevel3. I tested only Minimum Vertex Distance under identical deterministic windows:
+
+| Variant | Triangles, 0.2 -> 0.4 | Vertices, 0.2 -> 0.4 | Draw-state result |
+| --- | ---: | ---: | --- |
+| PerfectLevel1 | 126 -> 86 | 164 -> 124 | 7 Draw Calls / 7 Batches / 7 SetPass unchanged |
+| PerfectLevel2 | 196 -> 156 | 240 -> 200 | 8 Draw Calls / 8 Batches / 8 SetPass unchanged |
+
+The geometry reductions repeated across three replays. Fixed-phase render comparisons showed negligible image differences, so 0.4 was retained for both variants. These figures are controlled comparison-window values, not replacements for the authoritative four-variant baseline peaks.
 
 ### PerfectLevel2 and PerfectLevel3 renderer consolidation
 
@@ -70,8 +83,8 @@ Ten rapid deterministic replays passed for both variants without stale particles
 | Variant | Before Draw Calls | After Draw Calls | Decision |
 | --- | ---: | ---: | --- |
 | Transition | 6 | 6 | Visual correctness prioritized |
-| PerfectLevel1 | 7 | 7 | No safe reduction found |
-| PerfectLevel2 | 9 | 8 | Mirrored-rain renderer consolidation |
+| PerfectLevel1 | 7 | 7 | Trail geometry reduced; no safe draw-call reduction |
+| PerfectLevel2 | 9 | 8 | Renderer consolidation and trail geometry reduction |
 | PerfectLevel3 | 9 | 8 | Renderer consolidation and trail geometry reduction |
 
 For PerfectLevel3, peak geometry also changed from 424 to approximately 244 triangles and from 472 to approximately 292 vertices. No Batch or SetPass reduction is claimed for PerfectLevel2 or PerfectLevel3.
