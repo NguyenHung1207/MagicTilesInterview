@@ -18,6 +18,7 @@ namespace MagicTiles.Optimization
         private uint[] transferredSourceSeeds;
         private int transferredSeedCount;
         private bool initialized;
+        private bool transferComplete;
 
         private void Awake()
         {
@@ -43,8 +44,12 @@ namespace MagicTiles.Optimization
             if (source.isStopped)
             {
                 transferredSeedCount = 0;
+                transferComplete = false;
                 return;
             }
+
+            if (transferComplete)
+                return;
 
             int sourceCount = source.GetParticles(sourceParticles);
             if (sourceCount == 0)
@@ -75,7 +80,10 @@ namespace MagicTiles.Optimization
             }
 
             if (changed)
+            {
                 target.SetParticles(targetParticles, targetCount);
+                transferComplete = true;
+            }
         }
 
         private bool WasTransferred(uint randomSeed)
