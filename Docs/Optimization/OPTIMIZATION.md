@@ -136,7 +136,36 @@ Draw-call reduction was investigated rather than assumed. These Particle Systems
 
 The remaining events reflect meaningful differences, including textures, shaders, transparent sorting orders, trail topology, and intentionally separate emitters. GPU Instancing was not adopted because the current ParticleSystem renderers use Billboard render mode. SRP Batcher is not applicable because the project uses the Built-in Render Pipeline. `Mesh.CombineMeshes` and static draw-call-minimizer techniques are not appropriate for this dynamically generated ParticleSystem workload.
 
-Further reduction would likely require consolidating intentional emitters or redesigning the VFX/render architecture. That carries disproportionate implementation and visual-regression risk relative to the measured benefit. Visual composition was therefore prioritized over artificially lowering a profiler counter. The ineffective low-risk hypotheses were reverted, while the measurable trail-geometry optimization was retained.
+The final low-risk investigation tested whether one small renderer layer could be removed. Each isolated renderer toggle reduced the raw counters, but every candidate produced a visible compositional change. Further reduction would therefore require consolidating intentional emitters or redesigning the VFX/render architecture. That carries disproportionate implementation and visual-regression risk relative to the measured benefit. Visual composition was prioritized over artificially lowering a profiler counter. All renderer-removal tests were reverted, while the measurable trail-geometry optimization was retained.
+
+## Renderer Reduction Investigation
+
+The optimized scene was tested with runtime-only `ParticleSystemRenderer.enabled` toggles; no source prefab or scene setting was changed during measurement. Candidates were evaluated one at a time in the required order. Each control and disabled state used three deterministic PerfectLevel3 replays at seed `1337` and 1080 × 1920. The table lists the per-replay peak geometry samples rather than collapsing them into an invented single frame.
+
+| Candidate and state | Draw Calls | Batches | SetPass | Peak triangles by replay | Peak vertices by replay |
+| --- | ---: | ---: | ---: | --- | --- |
+| `init` control | 9, 9, 9 | 8, 8, 8 | 7, 7, 7 | 180, 244, 248 | 228, 292, 296 |
+| `init` renderer disabled | 8, 8, 8 | 7, 7, 7 | 6, 6, 6 | 240, 244, 246 | 288, 292, 294 |
+| `glow` control | 9, 9, 9 | 8, 8, 8 | 7, 7, 7 | 238, 242, 230 | 286, 292, 278 |
+| `glow` renderer disabled | 8, 8, 8 | 7, 7, 7 | 6, 6, 6 | 236, 244, 240 | 282, 292, 288 |
+| `outline_line` control | 9, 9, 9 | 8, 8, 8 | 7, 7, 7 | 238, 246, 244 | 286, 294, 294 |
+| `outline_line` renderer disabled | 8, 8, 8 | 7, 7, 7 | 6, 6, 6 | 234, 240, 244 | 280, 286, 290 |
+
+### `init` — REVERT
+
+**Hypothesis:** the short initial flash might contribute little enough to remove one submission. **Exact toggle:** `PerfectLevel3/init` → `ParticleSystemRenderer.enabled = false` on the runtime instance. The raw counters decreased consistently from 9/8/7 to 8/7/6, but the A/B capture showed a changed central impact footprint during the opening flash. Because `init` supports the hit onset, the visual change was not accepted and the renderer was restored.
+
+### `glow` — REVERT
+
+**Hypothesis:** the large additive glow might be visually redundant with the other center layers. **Exact toggle:** `PerfectLevel3/glow` → `ParticleSystemRenderer.enabled = false` on the runtime instance. The raw counters again decreased from 9/8/7 to 8/7/6, but the red central sunray/halo disappeared clearly. This materially weakened the impact and color composition, so the renderer was restored.
+
+### `outline_line` — REVERT
+
+**Hypothesis:** the thin outline line was the lowest-footprint candidate and might be covered by the circle and center layers. **Exact toggle:** `PerfectLevel3/outline_line` → `ParticleSystemRenderer.enabled = false` on the runtime instance. The raw counters decreased from 9/8/7 to 8/7/6 in all three replays. A four-phase sweep across its 0.5-second lifetime showed that the surrounding white ring/horizontal line disappears, weakening the effect silhouette. The renderer was restored.
+
+### Decision
+
+All three candidates proved that removing one renderer can reduce Draw Calls, Batches, and SetPass by one, but none passed the visual acceptance criterion. No renderer-removal override is retained. The current optimized scene therefore remains at 9 Draw Calls, 8 Batches, and 7 SetPass, with only the accepted trail-tessellation setting retained.
 
 ## 9. Before / Current Optimized Result
 
@@ -178,6 +207,32 @@ After the trail-tessellation change, the selected draw-state frame still records
 
 This separate optimized frame records the current geometry peak of approximately 244 triangles and 292 vertices, demonstrating the retained geometry reduction.
 
+### Renderer-reduction A/B evidence
+
+![PerfectLevel3 init renderer enabled](Experiments/RendererReduction/init_before.png)
+
+The deterministic control frame includes the short `init` impact layer at the center of the composition.
+
+![PerfectLevel3 init renderer disabled](Experiments/RendererReduction/init_after.png)
+
+With only the `init` renderer disabled, the opening center footprint changes. The measurable draw-call reduction was rejected because this layer supports the initial hit impact.
+
+![PerfectLevel3 glow renderer enabled](Experiments/RendererReduction/glow_before.png)
+
+The control frame shows the red additive sunray/halo behind the central outline layers.
+
+![PerfectLevel3 glow renderer disabled](Experiments/RendererReduction/glow_after.png)
+
+With only the `glow` renderer disabled, the red halo is visibly absent. This was an unacceptable loss of color and impact.
+
+![PerfectLevel3 outline line renderer enabled](Experiments/RendererReduction/outline_line_before.png)
+
+The early-lifetime control frame shows the thin white surrounding ring/horizontal line that supports the silhouette.
+
+![PerfectLevel3 outline line renderer disabled](Experiments/RendererReduction/outline_line_after.png)
+
+With only `outline_line` disabled, that surrounding white structure is missing. Multi-phase inspection confirmed that the difference persists through the layer's lifetime, so the test was reverted.
+
 ### Evidence still to capture
 
 - **TODO — Trail Frame Debugger diagnosis:** capture `PerfectLevel3/lines` main and trail render events with readable vertex/index counts.
@@ -189,6 +244,7 @@ This separate optimized frame records the current geometry peak of approximately
 - Peak draw-state and peak geometry can occur in different frames; both should be recorded instead of combining unrelated counters into one claimed sample.
 - Transparent ParticleSystem batching depends on more than shared shader/material compatibility. Sorting, topology, generated streams, and renderer state still matter.
 - A targeted topology setting can produce a larger and safer benefit than a more complex atlas or renderer-consolidation change.
+- A renderer can have a small pixel footprint and still provide important timing, color, or silhouette information; a lower draw-call number alone is not sufficient acceptance evidence.
 - An unsuccessful experiment is useful evidence when it is measured, documented, and fully reverted.
 - Editor profiling is appropriate for controlled iteration, but final mobile conclusions require a consistent on-device Development Build comparison.
 
