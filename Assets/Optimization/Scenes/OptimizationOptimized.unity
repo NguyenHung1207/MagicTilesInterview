@@ -278,10 +278,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8984612263285465034, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
-      propertyPath: m_MaskInteraction
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 9080798659863142123, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
       propertyPath: m_Name
       value: ParticleEffectsUnoptimize
