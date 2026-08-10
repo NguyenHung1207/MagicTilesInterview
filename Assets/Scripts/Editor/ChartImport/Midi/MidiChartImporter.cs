@@ -6,19 +6,41 @@ using Melanchall.DryWetMidi.Core;
 
 public static class MidiChartImporter
 {
-    private const string MidiAssetPath =
-        "Assets/GameData/Source/Midi/DemoSong_Source.mid.bytes";
-    private const string ChartOutputPath =
-        "Assets/GameData/Generated/Charts/DemoSong_Chart.json";
-    private const string ReportOutputPath =
-        "Assets/GameData/Reports/DemoSong_ChartImportReport.txt";
-
     [MenuItem("Tools/Magic Tiles/Build Demo Song Chart")]
     public static void BuildDemoSongChart()
     {
+        BuildChart(
+            "Assets/GameData/Source/Midi/DemoSong_Source.mid.bytes",
+            "Assets/GameData/Generated/Charts/DemoSong_Chart.json",
+            "Assets/GameData/Reports/DemoSong_ChartImportReport.txt");
+    }
+
+    [MenuItem("Tools/Magic Tiles/Build All Music Charts")]
+    public static void BuildAllMusicCharts()
+    {
+        BuildDemoSongChart();
+        BuildChart(
+            "Assets/GameData/Source/Midi/Sonata01_Source.mid.bytes",
+            "Assets/GameData/Generated/Charts/Sonata01_Chart.json",
+            "Assets/GameData/Reports/Sonata01_ChartImportReport.txt");
+        BuildChart(
+            "Assets/GameData/Source/Midi/Sonata02_Source.mid.bytes",
+            "Assets/GameData/Generated/Charts/Sonata02_Chart.json",
+            "Assets/GameData/Reports/Sonata02_ChartImportReport.txt");
+        BuildChart(
+            "Assets/GameData/Source/Midi/Sakura_Source.mid.bytes",
+            "Assets/GameData/Generated/Charts/Sakura_Chart.json",
+            "Assets/GameData/Reports/Sakura_ChartImportReport.txt");
+    }
+
+    private static void BuildChart(
+        string midiAssetPath,
+        string chartOutputPath,
+        string reportOutputPath)
+    {
         try
         {
-            TextAsset midiAsset = LoadMidiAsset();
+            TextAsset midiAsset = LoadMidiAsset(midiAssetPath);
             if (midiAsset == null)
             {
                 return;
@@ -37,31 +59,30 @@ public static class MidiChartImporter
             ChartValidationResult validationResult = validator.Validate(buildResult);
 
             string report = ChartImportReportWriter.Create(
-                MidiAssetPath,
+                midiAssetPath,
                 trackCount,
                 buildResult,
                 validationResult);
-            WriteProjectFile(ReportOutputPath, report);
+            WriteProjectFile(reportOutputPath, report);
 
             if (!validationResult.IsValid)
             {
                 AssetDatabase.Refresh();
-                Debug.LogError(
-                    $"Chart validation failed. See {ReportOutputPath} for details.");
+                Debug.LogError($"Chart validation failed. See {reportOutputPath} for details.");
                 return;
             }
 
             string json = JsonUtility.ToJson(buildResult.Chart, true) + Environment.NewLine;
-            WriteProjectFile(ChartOutputPath, json);
+            WriteProjectFile(chartOutputPath, json);
             AssetDatabase.Refresh();
 
             ChartBuildStatistics statistics = buildResult.Statistics;
             Debug.Log(
-                $"Built Demo Song chart: {statistics.RawNoteCount} raw -> " +
-                $"{statistics.GameplayNoteCount} gameplay notes, " +
+                $"Built {Path.GetFileNameWithoutExtension(chartOutputPath)} chart: " +
+                $"{statistics.RawNoteCount} raw -> {statistics.GameplayNoteCount} gameplay notes, " +
                 $"{statistics.ExactDuplicatesRemoved} duplicates removed, " +
                 $"{statistics.RepresentativeNoteCount} representatives selected. " +
-                $"Validation PASS. Output: {ChartOutputPath}");
+                $"Validation PASS. Output: {chartOutputPath}");
         }
         catch (Exception exception)
         {
@@ -72,8 +93,8 @@ public static class MidiChartImporter
     [MenuItem("Tools/Magic Tiles/Diagnostics/Preview Raw MIDI Notes")]
     private static void PreviewRawMidiNotes()
     {
-        TextAsset midiAsset = LoadMidiAsset();
-
+        TextAsset midiAsset = LoadMidiAsset(
+            "Assets/GameData/Source/Midi/DemoSong_Source.mid.bytes");
         if (midiAsset == null)
         {
             return;
@@ -89,19 +110,17 @@ public static class MidiChartImporter
         {
             MidiExtractedNote note = extractedNotes[i];
             Debug.Log(
-                $"[{i}] Tick={note.Tick}, " +
-                $"Time={note.TimeSeconds:F3}s, " +
-                $"Note={note.NoteNumber}, " +
-                $"Track={note.TrackIndex}");
+                $"[{i}] Tick={note.Tick}, Time={note.TimeSeconds:F3}s, " +
+                $"Note={note.NoteNumber}, Track={note.TrackIndex}");
         }
     }
 
-    private static TextAsset LoadMidiAsset()
+    private static TextAsset LoadMidiAsset(string midiAssetPath)
     {
-        TextAsset midiAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(MidiAssetPath);
+        TextAsset midiAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(midiAssetPath);
         if (midiAsset == null)
         {
-            Debug.LogError($"MIDI asset not found at {MidiAssetPath}.");
+            Debug.LogError($"MIDI asset not found at {midiAssetPath}.");
         }
 
         return midiAsset;

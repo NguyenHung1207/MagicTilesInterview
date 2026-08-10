@@ -1,0 +1,55 @@
+MAGIC TILES MIDI CHART IMPORT REPORT
+====================================
+
+SOURCE
+MIDI path: Assets/GameData/Source/Midi/Sonata01_Source.mid.bytes
+
+RAW DATA
+Total track count: 3
+Total raw note count: 1142
+
+NORMALIZATION
+Exact duplicates removed: 0
+Unique MIDI note count: 1142
+
+SOURCE GROUP ANALYSIS
+Unique Tick groups: 821
+Multi-pitch source groups: 136
+Largest source group size: 6
+
+REPRESENTATIVE SELECTION
+Policy: prefer Track 1; otherwise select the highest pitch.
+Representative notes selected: 821
+Preferred Track 1 selections: 717
+Highest-pitch fallback selections: 104
+
+OUTPUT
+Total gameplay notes: 821
+Lane 0 count: 15
+Lane 1 count: 323
+Lane 2 count: 473
+Lane 3 count: 10
+First hit time: 0.000000s
+Last hit time: 272.000000s
+
+REPRESENTATIVE TRANSFORMATIONS
+Tick=0
+  RAW: pitches=[37, 49, 56]
+  AFTER DEDUP: pitches=[37, 49, 56]
+  REPRESENTATIVE: pitch=56, track=1
+  OUTPUT: pitch 56 -> lane 1
+Tick=128
+  RAW: pitches=[61]
+  AFTER DEDUP: pitches=[61]
+  REPRESENTATIVE: pitch=61, track=1
+  OUTPUT: pitch 61 -> lane 1
+Tick=256
+  RAW: pitches=[64]
+  AFTER DEDUP: pitches=[64]
+  REPRESENTATIVE: pitch=64, track=1
+  OUTPUT: pitch 64 -> lane 2
+
+VALIDATION
+Result: PASS
+Errors: None
+Warnings: None

@@ -1,0 +1,55 @@
+MAGIC TILES MIDI CHART IMPORT REPORT
+====================================
+
+SOURCE
+MIDI path: Assets/GameData/Source/Midi/Sakura_Source.mid.bytes
+
+RAW DATA
+Total track count: 2
+Total raw note count: 143
+
+NORMALIZATION
+Exact duplicates removed: 0
+Unique MIDI note count: 143
+
+SOURCE GROUP ANALYSIS
+Unique Tick groups: 140
+Multi-pitch source groups: 3
+Largest source group size: 2
+
+REPRESENTATIVE SELECTION
+Policy: prefer Track 1; otherwise select the highest pitch.
+Representative notes selected: 140
+Preferred Track 1 selections: 140
+Highest-pitch fallback selections: 0
+
+OUTPUT
+Total gameplay notes: 140
+Lane 0 count: 16
+Lane 1 count: 35
+Lane 2 count: 78
+Lane 3 count: 11
+First hit time: 0.000000s
+Last hit time: 59.250000s
+
+REPRESENTATIVE TRANSFORMATIONS
+Tick=0
+  RAW: pitches=[72]
+  AFTER DEDUP: pitches=[72]
+  REPRESENTATIVE: pitch=72, track=1
+  OUTPUT: pitch 72 -> lane 2
+Tick=192
+  RAW: pitches=[59, 71]
+  AFTER DEDUP: pitches=[59, 71]
+  REPRESENTATIVE: pitch=71, track=1
+  OUTPUT: pitch 71 -> lane 2
+Tick=576
+  RAW: pitches=[69]
+  AFTER DEDUP: pitches=[69]
+  REPRESENTATIVE: pitch=69, track=1
+  OUTPUT: pitch 69 -> lane 2
+
+VALIDATION
+Result: PASS
+Errors: None
+Warnings: None

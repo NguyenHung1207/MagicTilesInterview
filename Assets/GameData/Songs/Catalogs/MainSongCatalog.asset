@@ -11,7 +11,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c977939caf68348478250ff73265f43c, type: 3}
   m_Name: MainSongCatalog
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   songs:
   - {fileID: 11400000, guid: 716198a0834c7244288409b8eba59f99, type: 2}
-  - {fileID: 11400000, guid: b359fa486130cf74b9be189abe8fdac0, type: 2}
+  - {fileID: 11400000, guid: fb552f8133d44ad5a3eae35fa2a3712d, type: 2}
+  - {fileID: 11400000, guid: 70a15cab508c453b90c293a8ec64562f, type: 2}
+  - {fileID: 11400000, guid: d0286bdfc8824171b2b6a39556a256c9, type: 2}

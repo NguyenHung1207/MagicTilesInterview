@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b95e06a87d9733f4db20c476b9760b30, type: 3}
-  m_Name: Song02
-  m_EditorClassIdentifier: 
-  songId: song_02
-  displayName: Song 02
-  artist: Test Artist
-  audioClip: {fileID: 8300000, guid: cd1621e4dde12db4eb8c01f4b0f4fd64, type: 3}
-  chartAsset: {fileID: 4900000, guid: d2783314306b4ee48ba68c74c9db236c, type: 3}
+  m_Name: Sakura
+  m_EditorClassIdentifier:
+  songId: sakura
+  displayName: Sakura
+  artist:
+  audioClip: {fileID: 8300000, guid: 8d6a4d8347800d64a8cb577d10319bdc, type: 3}
+  chartAsset: {fileID: 4900000, guid: 6cfe32053d7049b4591a5be12ce4e3ba, type: 3}
   coverSprite: {fileID: 0}
-  backgroundTheme: {fileID: 11400000, guid: 533e1fd19978a6d449ddf156bf601a67, type: 2}
+  backgroundTheme: {fileID: 11400000, guid: 368415b4a2203504d820eb4b210b53bb, type: 2}

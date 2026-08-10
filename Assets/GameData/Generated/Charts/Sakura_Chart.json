@@ -1,0 +1,564 @@
+{
+    "notes": [
+        {
+            "lane": 2,
+            "hitTime": 0.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 0.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 0.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 1.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 2.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 2.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 2.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 3.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 4.0
+        },
+        {
+            "lane": 0,
+            "hitTime": 4.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 4.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 5.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 5.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 6.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 7.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 7.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 8.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 8.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 9.0
+        },
+        {
+            "lane": 0,
+            "hitTime": 9.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 9.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 10.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 10.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 11.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 11.25
+        },
+        {
+            "lane": 0,
+            "hitTime": 11.75
+        },
+        {
+            "lane": 0,
+            "hitTime": 12.0
+        },
+        {
+            "lane": 0,
+            "hitTime": 12.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 12.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 13.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 13.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 14.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 14.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 15.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 15.625
+        },
+        {
+            "lane": 1,
+            "hitTime": 15.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 16.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 17.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 17.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 18.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 18.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 19.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 19.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 20.0
+        },
+        {
+            "lane": 1,
+            "hitTime": 20.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 20.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 21.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 21.5
+        },
+        {
+            "lane": 1,
+            "hitTime": 21.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 22.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 22.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 22.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 23.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 23.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 24.0
+        },
+        {
+            "lane": 3,
+            "hitTime": 24.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 24.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 25.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 25.75
+        },
+        {
+            "lane": 3,
+            "hitTime": 26.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 26.5
+        },
+        {
+            "lane": 2,
+            "hitTime": 27.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 27.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 27.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 28.0
+        },
+        {
+            "lane": 3,
+            "hitTime": 28.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 28.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 29.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 29.75
+        },
+        {
+            "lane": 0,
+            "hitTime": 30.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 30.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 31.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 32.0
+        },
+        {
+            "lane": 1,
+            "hitTime": 32.25
+        },
+        {
+            "lane": 0,
+            "hitTime": 32.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 33.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 33.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 34.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 34.5
+        },
+        {
+            "lane": 0,
+            "hitTime": 34.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 35.0
+        },
+        {
+            "lane": 1,
+            "hitTime": 35.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 36.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 37.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 38.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 38.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 39.25
+        },
+        {
+            "lane": 3,
+            "hitTime": 39.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 40.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 40.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 41.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 41.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 42.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 42.75
+        },
+        {
+            "lane": 0,
+            "hitTime": 43.25
+        },
+        {
+            "lane": 0,
+            "hitTime": 43.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 44.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 44.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 44.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 45.25
+        },
+        {
+            "lane": 0,
+            "hitTime": 46.25
+        },
+        {
+            "lane": 0,
+            "hitTime": 46.5
+        },
+        {
+            "lane": 2,
+            "hitTime": 47.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 47.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 47.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 48.0
+        },
+        {
+            "lane": 0,
+            "hitTime": 48.25
+        },
+        {
+            "lane": 0,
+            "hitTime": 48.5
+        },
+        {
+            "lane": 1,
+            "hitTime": 48.75
+        },
+        {
+            "lane": 0,
+            "hitTime": 49.0
+        },
+        {
+            "lane": 0,
+            "hitTime": 49.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 49.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 50.0
+        },
+        {
+            "lane": 1,
+            "hitTime": 50.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 50.5
+        },
+        {
+            "lane": 2,
+            "hitTime": 50.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 51.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 51.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 51.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 52.0
+        },
+        {
+            "lane": 3,
+            "hitTime": 52.5
+        },
+        {
+            "lane": 2,
+            "hitTime": 52.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 53.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 53.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 53.5
+        },
+        {
+            "lane": 2,
+            "hitTime": 53.75
+        },
+        {
+            "lane": 1,
+            "hitTime": 54.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 54.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 54.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 55.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 55.5
+        },
+        {
+            "lane": 1,
+            "hitTime": 55.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 56.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 56.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 56.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 57.25
+        },
+        {
+            "lane": 2,
+            "hitTime": 58.0
+        },
+        {
+            "lane": 2,
+            "hitTime": 58.25
+        },
+        {
+            "lane": 1,
+            "hitTime": 58.75
+        },
+        {
+            "lane": 2,
+            "hitTime": 59.25
+        }
+    ]
+}
