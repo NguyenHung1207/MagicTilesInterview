@@ -180,10 +180,10 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 200
   field of view: 60
   orthographic: 1
-  orthographic size: 960
+  orthographic size: 400
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -214,7 +214,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1578677858
+--- !u!1001 &1255534666
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -251,6 +251,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3749359709912132418, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3749359709912132418, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3749359709912132418, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3749359709912132418, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
@@ -273,8 +285,23 @@ PrefabInstance:
   m_SourcePrefab: {fileID: 100100000, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
 --- !u!198 &1980000004 stripped
 ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 8031827917173328251, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
+  m_PrefabInstance: {fileID: 1255534666}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1980000005 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 1940534273374389078, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
+  m_PrefabInstance: {fileID: 1255534666}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1980000006 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 7804529007664042530, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
+  m_PrefabInstance: {fileID: 1255534666}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &1980000007 stripped
+ParticleSystem:
   m_CorrespondingSourceObject: {fileID: 7662169098026891183, guid: ca94b72a1a32046e484e5c44bfbdcca8, type: 3}
-  m_PrefabInstance: {fileID: 1578677858}
+  m_PrefabInstance: {fileID: 1255534666}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1980000001
 GameObject:
@@ -320,7 +347,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31315496184d4ec9aa13b294e9f13179, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  perfectLevel3: {fileID: 1980000004}
+  selectedVariant: 3
+  transition: {fileID: 1980000004}
+  perfectLevel1: {fileID: 1980000005}
+  perfectLevel2: {fileID: 1980000006}
+  perfectLevel3: {fileID: 1980000007}
   playOnStart: 1
   baseRandomSeed: 1337
 --- !u!1660057539 &9223372036854775807
@@ -328,5 +359,5 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 699816105}
-  - {fileID: 1578677858}
+  - {fileID: 1255534666}
   - {fileID: 1980000002}
