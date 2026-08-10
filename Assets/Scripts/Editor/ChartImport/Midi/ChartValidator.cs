@@ -31,6 +31,7 @@ public class ChartValidator
 
         ValidateRuntimeNotes(chart.notes, result);
         ValidateBuildContext(buildResult, result);
+        ValidateLaneBalance(chart.notes, result);
 
         return result;
     }
@@ -110,6 +111,36 @@ public class ChartValidator
             {
                 result.Errors.Add(
                     $"More than one gameplay note exists at MIDI Tick {note.Tick}.");
+            }
+        }
+    }
+
+    private static void ValidateLaneBalance(
+        IReadOnlyList<NoteData> notes,
+        ChartValidationResult result)
+    {
+        if (notes.Count < 20)
+        {
+            return;
+        }
+
+        int[] laneCounts = new int[ChartBuilder.LaneCount];
+        foreach (NoteData note in notes)
+        {
+            if (note != null && note.lane >= 0 && note.lane < ChartBuilder.LaneCount)
+            {
+                laneCounts[note.lane]++;
+            }
+        }
+
+        for (int lane = 0; lane < laneCounts.Length; lane++)
+        {
+            double percentage = laneCounts[lane] * 100d / notes.Count;
+            if (percentage < 15d || percentage > 40d)
+            {
+                result.Warnings.Add(
+                    $"Lane {lane} represents {percentage:F1}% of gameplay notes; " +
+                    "review playability for this chart.");
             }
         }
     }

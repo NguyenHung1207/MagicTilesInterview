@@ -26,9 +26,6 @@ public class ChartBuilder
         result.Statistics.TickGroupCount = notesByTick.Count;
 
         var preparedGroups = new List<PreparedTickGroup>(notesByTick.Count);
-        int minimumPitch = int.MaxValue;
-        int maximumPitch = int.MinValue;
-
         foreach (KeyValuePair<long, List<MidiExtractedNote>> pair in notesByTick)
         {
             List<MidiExtractedNote> group = pair.Value;
@@ -53,11 +50,9 @@ public class ChartBuilder
 
             result.Statistics.RepresentativeNoteCount++;
             preparedGroups.Add(new PreparedTickGroup(pair.Key, representative));
-            minimumPitch = Math.Min(minimumPitch, representative.NoteNumber);
-            maximumPitch = Math.Max(maximumPitch, representative.NoteNumber);
         }
 
-        BuildGameplayNotes(preparedGroups, minimumPitch, maximumPitch, result);
+        BuildGameplayNotes(preparedGroups, result);
         BuildTransformationSamples(sortedRawNotes, notesByTick, preparedGroups, result);
         return result;
     }
@@ -138,14 +133,26 @@ public class ChartBuilder
 
     private static void BuildGameplayNotes(
         IReadOnlyList<PreparedTickGroup> groups,
-        int minimumPitch,
-        int maximumPitch,
         ChartBuildResult result)
     {
+        int[] pitchThresholds = DerivePitchThresholds(groups);
+        int[] laneCounts = new int[LaneCount];
+        int previousLane = -1;
+        int previousPitch = 0;
+        int consecutiveLaneRun = 0;
+
         foreach (PreparedTickGroup group in groups)
         {
             MidiExtractedNote sourceNote = group.Representative;
-            int lane = MapPitchToLane(sourceNote.NoteNumber, minimumPitch, maximumPitch);
+            int baseLane = MapPitchToLane(sourceNote.NoteNumber, pitchThresholds);
+            int lane = AdjustForPlayability(
+                baseLane,
+                sourceNote.NoteNumber,
+                previousLane,
+                previousPitch,
+                consecutiveLaneRun,
+                laneCounts,
+                result.Chart.notes.Count);
 
             result.Chart.notes.Add(new NoteData
             {
@@ -162,28 +169,191 @@ public class ChartBuilder
                 HitTime = sourceNote.TimeSeconds
             });
 
-            result.Statistics.LaneCounts[lane]++;
+            laneCounts[lane]++;
+            if (lane == previousLane)
+            {
+                consecutiveLaneRun++;
+            }
+            else
+            {
+                consecutiveLaneRun = 1;
+            }
+
+            previousLane = lane;
+            previousPitch = sourceNote.NoteNumber;
         }
 
+        result.Statistics.LaneCounts = laneCounts;
         result.Statistics.GameplayNoteCount = result.Chart.notes.Count;
         if (result.Chart.notes.Count > 0)
         {
             result.Statistics.FirstHitTime = result.Chart.notes[0].hitTime;
             result.Statistics.LastHitTime = result.Chart.notes[result.Chart.notes.Count - 1].hitTime;
+            result.Statistics.MinimumHitInterval = FindMinimumHitInterval(result.Chart.notes);
+            result.Statistics.LongestConsecutiveLaneRun = FindLongestLaneRun(result.Chart.notes);
         }
     }
 
-    private static int MapPitchToLane(int pitch, int minimumPitch, int maximumPitch)
+    private static int[] DerivePitchThresholds(IReadOnlyList<PreparedTickGroup> groups)
     {
-        if (minimumPitch == maximumPitch)
+        var pitches = new List<int>(groups.Count);
+        foreach (PreparedTickGroup group in groups)
+        {
+            pitches.Add(group.Representative.NoteNumber);
+        }
+
+        pitches.Sort();
+        return new[]
+        {
+            SelectQuantile(pitches, 0.25),
+            SelectQuantile(pitches, 0.50),
+            SelectQuantile(pitches, 0.75)
+        };
+    }
+
+    private static int SelectQuantile(IReadOnlyList<int> sortedValues, double quantile)
+    {
+        int index = (int)Math.Floor((sortedValues.Count - 1) * quantile);
+        return sortedValues[index];
+    }
+
+    private static int MapPitchToLane(int pitch, IReadOnlyList<int> thresholds)
+    {
+        if (pitch <= thresholds[0])
         {
             return 0;
         }
 
-        double normalizedPitch = (pitch - minimumPitch) / (double)(maximumPitch - minimumPitch);
-        return (int)Math.Round(
-            normalizedPitch * (LaneCount - 1),
-            MidpointRounding.AwayFromZero);
+        if (pitch <= thresholds[1])
+        {
+            return 1;
+        }
+
+        if (pitch <= thresholds[2])
+        {
+            return 2;
+        }
+
+        return 3;
+    }
+
+    private static int AdjustForPlayability(
+        int baseLane,
+        int pitch,
+        int previousLane,
+        int previousPitch,
+        int consecutiveLaneRun,
+        IReadOnlyList<int> laneCounts,
+        int assignedCount)
+    {
+        if (assignedCount == 0)
+        {
+            return baseLane;
+        }
+
+        int minimumCount = int.MaxValue;
+        for (int lane = 0; lane < LaneCount; lane++)
+        {
+            minimumCount = Math.Min(minimumCount, laneCounts[lane]);
+        }
+
+        bool baseOverrepresented = laneCounts[baseLane] > minimumCount + 1;
+        bool baseNeedsBreak = consecutiveLaneRun >= 2;
+        bool missingLaneNeedsHelp = assignedCount >= LaneCount
+            && laneCounts[baseLane] > minimumCount
+            && HasEmptyLane(laneCounts);
+        if (!baseOverrepresented && !baseNeedsBreak && !missingLaneNeedsHelp)
+        {
+            return baseLane;
+        }
+
+        int pitchDirection = Math.Sign(pitch - previousPitch);
+        int bestLane = baseLane;
+        int bestScore = int.MaxValue;
+        for (int candidate = 0; candidate < LaneCount; candidate++)
+        {
+            int score = Math.Abs(candidate - baseLane) * 2;
+            if (candidate == previousLane)
+            {
+                score += consecutiveLaneRun >= 2 ? 12 : 3;
+            }
+
+            if (laneCounts[candidate] > minimumCount)
+            {
+                score += laneCounts[candidate] - minimumCount;
+            }
+            else
+            {
+                score -= 3;
+            }
+
+            if (pitchDirection > 0 && candidate < previousLane)
+            {
+                score += 2;
+            }
+            else if (pitchDirection < 0 && candidate > previousLane)
+            {
+                score += 2;
+            }
+
+            if (previousLane >= 0 && Math.Abs(candidate - previousLane) > 1
+                && Math.Abs(pitch - previousPitch) <= 2)
+            {
+                score += 4;
+            }
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestLane = candidate;
+            }
+        }
+
+        return bestLane;
+    }
+
+    private static bool HasEmptyLane(IReadOnlyList<int> laneCounts)
+    {
+        for (int lane = 0; lane < LaneCount; lane++)
+        {
+            if (laneCounts[lane] == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double FindMinimumHitInterval(IReadOnlyList<NoteData> notes)
+    {
+        if (notes.Count < 2)
+        {
+            return 0d;
+        }
+
+        double minimum = double.MaxValue;
+        for (int index = 1; index < notes.Count; index++)
+        {
+            minimum = Math.Min(minimum, notes[index].hitTime - notes[index - 1].hitTime);
+        }
+
+        return minimum;
+    }
+
+    private static int FindLongestLaneRun(IReadOnlyList<NoteData> notes)
+    {
+        int longest = 0;
+        int current = 0;
+        int previousLane = -1;
+        foreach (NoteData note in notes)
+        {
+            current = note.lane == previousLane ? current + 1 : 1;
+            longest = Math.Max(longest, current);
+            previousLane = note.lane;
+        }
+
+        return longest;
     }
 
     private static void BuildTransformationSamples(
@@ -276,6 +446,8 @@ public class ChartBuildStatistics
     public int[] LaneCounts = new int[ChartBuilder.LaneCount];
     public double FirstHitTime;
     public double LastHitTime;
+    public double MinimumHitInterval;
+    public int LongestConsecutiveLaneRun;
 }
 
 public class ChartBuiltNote

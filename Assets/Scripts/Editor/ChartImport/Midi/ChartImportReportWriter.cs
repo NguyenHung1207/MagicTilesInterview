@@ -57,6 +57,8 @@ public static class ChartImportReportWriter
 
         report.AppendLine($"First hit time: {FormatSeconds(statistics.FirstHitTime)}");
         report.AppendLine($"Last hit time: {FormatSeconds(statistics.LastHitTime)}");
+        report.AppendLine($"Minimum hit interval: {FormatSeconds(statistics.MinimumHitInterval)}");
+        report.AppendLine($"Longest consecutive lane run: {statistics.LongestConsecutiveLaneRun}");
         report.AppendLine();
 
         report.AppendLine("REPRESENTATIVE TRANSFORMATIONS");

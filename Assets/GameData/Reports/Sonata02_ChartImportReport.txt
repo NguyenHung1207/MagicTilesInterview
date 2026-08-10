@@ -25,12 +25,14 @@ Highest-pitch fallback selections: 30
 
 OUTPUT
 Total gameplay notes: 145
-Lane 0 count: 5
-Lane 1 count: 18
-Lane 2 count: 85
-Lane 3 count: 37
+Lane 0 count: 39
+Lane 1 count: 37
+Lane 2 count: 35
+Lane 3 count: 34
 First hit time: 0.000000s
 Last hit time: 178.000000s
+Minimum hit interval: 0.500000s
+Longest consecutive lane run: 2
 
 REPRESENTATIVE TRANSFORMATIONS
 Tick=0
@@ -47,7 +49,7 @@ Tick=1152
   RAW: pitches=[61, 67, 70]
   AFTER DEDUP: pitches=[61, 67, 70]
   REPRESENTATIVE: pitch=70, track=1
-  OUTPUT: pitch 70 -> lane 2
+  OUTPUT: pitch 70 -> lane 1
 
 VALIDATION
 Result: PASS
