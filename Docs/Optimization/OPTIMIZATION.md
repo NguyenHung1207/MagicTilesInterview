@@ -44,12 +44,12 @@ The effect uses multiple transparent materials, textures, shaders, and sorting o
 
 ### Intentional mirrored emitters
 
-`PerfectLevel3/rain3` and `PerfectLevel3/rain4` participate in the same dynamic-rendering group, but they are not accidental duplicates. They are mirrored emitters used to preserve the composition:
+`rain3` and `rain4` are intentional mirrored emitters in both `PerfectLevel2` and `PerfectLevel3`; they are not accidental duplicate layers. The pair uses the same particle, module, renderer, material, shader, texture, and sorting configuration. Only the transform origin and Shape rotation differ:
 
 - `rain3`: position X `+2`, position Y `-1.55`, shape rotation Z `-15°`.
 - `rain4`: position X `-2`, position Y `-1.55`, shape rotation Z `-195°`.
 
-Consolidating or removing either emitter would be a VFX redesign with visual-regression risk.
+Frame Debugger represented the pair as one dynamic-rendering event with two draw submissions. This made it the strongest structural candidate: preserve both simulations and their mirrored output, but submit their particles through one compatible renderer.
 
 ## 5. Accepted Optimization — Trail Tessellation
 
@@ -134,9 +134,9 @@ Frame Debugger inspection also showed that `outline_circle` remained a separate 
 
 Draw-call reduction was investigated rather than assumed. These Particle Systems generate geometry dynamically and already participate in Unity's dynamic batching path. Sharing a shader, sorting state, atlas, and material did not reduce raw Draw Calls, Batches, or SetPass in the measured workload.
 
-The remaining events reflect meaningful differences, including textures, shaders, transparent sorting orders, trail topology, and intentionally separate emitters. GPU Instancing was not adopted because the current ParticleSystem renderers use Billboard render mode. SRP Batcher is not applicable because the project uses the Built-in Render Pipeline. `Mesh.CombineMeshes` and static draw-call-minimizer techniques are not appropriate for this dynamically generated ParticleSystem workload.
+Most remaining events reflect meaningful differences, including textures, shaders, transparent sorting orders, and trail topology. GPU Instancing was not adopted because the current ParticleSystem renderers use Billboard render mode. SRP Batcher is not applicable because the project uses the Built-in Render Pipeline. `Mesh.CombineMeshes` and static draw-call-minimizer techniques are not appropriate for this dynamically generated ParticleSystem workload.
 
-The final low-risk investigation tested whether one small renderer layer could be removed. Each isolated renderer toggle reduced the raw counters, but every candidate produced a visible compositional change. Further reduction would therefore require consolidating intentional emitters or redesigning the VFX/render architecture. That carries disproportionate implementation and visual-regression risk relative to the measured benefit. Visual composition was prioritized over artificially lowering a profiler counter. All renderer-removal tests were reverted, while the measurable trail-geometry optimization was retained.
+The final structural investigation found one exception: the mirrored `rain3/rain4` systems in PerfectLevel2 and PerfectLevel3 have compatible post-emission simulation and renderer state. Their simulations were preserved while their output was consolidated into one renderer. This reduced one real draw call in each affected variant. Renderer removal and trail-renderer consolidation candidates that changed the intended image were still rejected.
 
 ## Renderer Reduction Investigation
 
@@ -165,19 +165,80 @@ The optimized scene was tested with runtime-only `ParticleSystemRenderer.enabled
 
 ### Decision
 
-All three candidates proved that removing one renderer can reduce Draw Calls, Batches, and SetPass by one, but none passed the visual acceptance criterion. No renderer-removal override is retained. The current optimized scene therefore remains at 9 Draw Calls, 8 Batches, and 7 SetPass, with only the accepted trail-tessellation setting retained.
+All three candidates proved that removing one renderer can reduce Draw Calls, Batches, and SetPass by one, but none passed the visual acceptance criterion. No renderer-removal override is retained. The later mirrored-emitter consolidation is a separate optimization: it preserves both visual layers and changes only which compatible renderer submits their generated particles.
+
+## Four-Variant Draw-Call Optimization
+
+### Complete render-event map
+
+The table below records the representative 0.22-second Frame Debugger frame. Vertex/index counts are frame-local evidence; they are not the peak geometry table above. A draw count of 2 means that one Frame Debugger dynamic group contained two renderer submissions.
+
+| Variant | Event order | System / pass | Material | Shader / texture | Draws | Vertices / indices | Observed break |
+| --- | ---: | --- | --- | --- | ---: | ---: | --- |
+| Transition | 1 | `zap1` MAIN | `triangle_4` | Standard Unlit / `StyledConfetti` | 1 | 80 / 120 | First transparent event |
+| Transition | 2 | `zap1` TRAIL | `trail` | Standard Unlit / `trail` | 1 | 40 / 114 | Different material/topology |
+| Transition | 3 | `zap2` MAIN | `triangle_4` | Standard Unlit / `StyledConfetti` | 1 | 80 / 120 | Interleaved trail ordering |
+| Transition | 4 | `zap2` TRAIL | `trail` | Standard Unlit / `trail` | 1 | 40 / 114 | Different material/topology |
+| Transition | 5 | `outline_circle` MAIN | `triangle_2` | Mobile Additive / `fx_circle_line2` | 1 | 4 / 6 | Different material |
+| Transition | 6 | `init` MAIN | `explode0` | Standard Unlit / `note_long_dot_active` | 1 | 4 / 6 | Different material |
+| PerfectLevel1 | 1–3 | `glow`, `outline_circle`, `outline_line` MAIN | `triangle_5/2/3` | Mixed shader/textures | 3 | 4 / 6 each | Different materials |
+| PerfectLevel1 | 4 | `lines` MAIN | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 16 / 24 | Different material |
+| PerfectLevel1 | 5 | `lines` TRAIL | `triangle_2` | Mobile Additive / `fx_circle_line2` | 1 | 136 / 384 | Trail topology |
+| PerfectLevel1 | 6–7 | `triangle`, `init` MAIN | `triangle`, `explode0` | Different shaders/textures | 2 | 28 / 42; 4 / 6 | Different materials |
+| PerfectLevel2 | 1–5 | Same PL1 front layers and `lines` MAIN/TRAIL | Mixed | Mixed | 5 | Trail: 216 / 624 | Materials/topology |
+| PerfectLevel2 | 6 | `rain3 + rain4` MAIN, baseline | `triangle_1` | Mobile Additive / `top_tile_short` | **2** | 16 / 24 | Two compatible renderers in one dynamic group |
+| PerfectLevel2 | 7–8 | `triangle`, `init` MAIN | Mixed | Mixed | 2 | 28 / 42; 4 / 6 | Different materials |
+| PerfectLevel3 | 1–3 | `glow`, `outline_circle`, `outline_line` MAIN | Mixed | Mixed | 3 | 4 / 6 each | Different materials |
+| PerfectLevel3 | 4 | `lines` TRAIL | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 168 / 468 | Trail topology |
+| PerfectLevel3 | 5 | `lines` MAIN | `triangle_1` | Mobile Additive / `top_tile_short` | 1 | 24 / 36 | Different vertex stream/batching key |
+| PerfectLevel3 | 6 | `rain3 + rain4` MAIN, baseline | `triangle_1` | Mobile Additive / `top_tile_short` | **2** | 16 / 24 | Two compatible renderers |
+| PerfectLevel3 | 7–8 | `triangle`, `init` MAIN | Mixed | Mixed | 2 | 28 / 42; 4 / 6 | Different materials |
+
+Root ParticleSystem renderers do not submit draws because their emission is disabled. After consolidation, Frame Debugger identifies one `rain3` event with one draw and 8 vertices / 12 indices in both PerfectLevel2 and PerfectLevel3.
+
+### Accepted implementation — mirrored rain renderer consolidation
+
+An optimized duplicate was created at:
+
+`Assets/Optimization/Prefabs/ParticleEffectsOptimized.prefab`
+
+The source prefab remains untouched. For both PerfectLevel2 and PerfectLevel3:
+
+1. `rain3` remains the render target.
+2. `rain4` continues to simulate with its original deterministic seed, transform, Shape rotation, emission, lifetime, velocity, size, color, and rotation modules.
+3. Only the optimized-copy `rain4` renderer is disabled.
+4. `ParticleSystemRendererConsolidator` transfers each newly emitted `rain4` particle once into `rain3` in the correct simulation space. Particle arrays and seed caches are allocated once in `Awake`; replay performs no hierarchy search, Instantiate/Destroy, or collection allocation.
+
+Because all post-emission modules and renderer state match, transferred particles continue under equivalent modules while one renderer submits both mirrored sides.
+
+| Variant | Before Draw Calls | After Draw Calls | Before Batches | After Batches | SetPass Before | SetPass After |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Transition | 6 | 6 | 6 | 6 | 6 | 6 |
+| PerfectLevel1 | 7 | 7 | 7 | 7 | 7 | 7 |
+| PerfectLevel2 | 9 | **8** | 8 | 8 | 8 | 8 |
+| PerfectLevel3 | 9 | **8** | 8 | 8 | 7 | 7 |
+
+Each final value was stable across three deterministic Editor replays. Frame Debugger confirmed that the baseline two-draw rain group became one named `rain3` submission.
+
+### Rejected structural candidates
+
+- **Transition `zap1/zap2` consolidation — REVERT.** The identical simulation configurations made the pair technically transferable and counters improved from 6/6/6 to 4/4/4. However, combining two independent trail histories in one renderer produced obvious horizontal connecting streaks instead of two isolated mirrored zaps. The renderer override and component were removed.
+- **PerfectLevel1 `lines` MAIN material removal — REVERT.** Removing only the optimized-copy main material while retaining the Trail material did not reduce the measured 7 Draw Calls / 7 Batches / 7 SetPass. It failed the primary metric gate and the original assignment was restored.
+- **PerfectLevel1 atlas/material consolidation — not repeated.** Its visible events use different textures or different topology; `outline_circle` and the `lines` trail already share `triangle_2`, yet remain separate because one is billboard geometry and the other is trail geometry. No safe renderer-count reduction was found.
+
+Transition and PerfectLevel1 therefore remain unchanged. Further reduction in those variants would require a custom trail architecture or combining visually distinct layers, which did not meet the risk/complexity gate.
 
 ## 9. Before / Current Optimized Result
 
 | Metric | Before | Current optimized |
 | --- | ---: | ---: |
-| Draw Calls | 9 | 9 |
+| Draw Calls | 9 | **8** |
 | Batches | 8 | 8 |
 | SetPass | 7 | 7 |
 | Peak Triangles | 424 | ~244 |
 | Peak Vertices | 472 | ~292 |
 
-The retained change reduces peak triangles by approximately **42%** and peak vertices by approximately **38%**. It does **not** reduce Draw Calls, Batches, or SetPass.
+For the primary PerfectLevel3 workload, the retained changes reduce Draw Calls by one, peak triangles by approximately **42%**, and peak vertices by approximately **38%**. Batches and SetPass remain unchanged. The rain consolidation is intended to preserve geometry; the geometry reduction still comes from the accepted trail-tessellation setting.
 
 ## 10. Evidence
 
@@ -191,21 +252,69 @@ This Profiler frame records the baseline draw-state peak of 9 Draw Calls, 8 Batc
 
 This separate Profiler frame records the baseline geometry peak of 424 triangles and 472 vertices. Peak geometry and peak draw-state were captured from different frames of the deterministic replay.
 
+![PerfectLevel3 lines trail Frame Debugger event](Before/before_pl3_frame_debugger_lines_trail.png)
+
+This Frame Debugger capture isolates the high-geometry `PerfectLevel3/lines` trail submission used to diagnose the accepted tessellation change.
+
 ### PerfectLevel2 secondary validation
 
 ![PerfectLevel2 baseline SetPass peak](Before/before_pl2_setpass_peak.png)
 
 This Profiler frame records PerfectLevel2 at 9 Draw Calls, 8 Batches, and the four-variant maximum of 8 SetPass, supporting its use as the secondary validation workload.
 
-### Current optimized PerfectLevel3
+### Trail-tessellation checkpoint
 
 ![PerfectLevel3 optimized draw-state peak](After/after_trail_draw_peak.png)
 
-After the trail-tessellation change, the selected draw-state frame still records 9 Draw Calls, 8 Batches, and 7 SetPass. Geometry is lower at 236 triangles and 290 vertices in this frame.
+At the earlier trail-only checkpoint, the selected draw-state frame still recorded 9 Draw Calls, 8 Batches, and 7 SetPass. Geometry was lower at 236 triangles and 290 vertices in this frame. The later mirrored-rain consolidation reduces the final Draw Call count to 8.
 
 ![PerfectLevel3 optimized geometry peak](After/after_trail_geometry_peak.png)
 
 This separate optimized frame records the current geometry peak of approximately 244 triangles and 292 vertices, demonstrating the retained geometry reduction.
+
+### Mirrored-rain consolidation
+
+![PerfectLevel2 rain group before consolidation](DrawCall/PerfectLevel2/frame_debugger_before.png)
+
+Before consolidation, Frame Debugger shows the anonymous dynamic event produced by the two compatible rain renderers. The extracted event data reports two draw submissions for this group.
+
+![PerfectLevel2 rain renderer after consolidation](DrawCall/PerfectLevel2/frame_debugger_after.png)
+
+After consolidation, the corresponding event is a single named `rain3` submission. The full variant decreases from 9 to 8 Draw Calls.
+
+![PerfectLevel3 rain group before consolidation](DrawCall/PerfectLevel3/frame_debugger_before.png)
+
+The PerfectLevel3 baseline likewise contains the two-renderer rain group before the `triangle` and `init` events.
+
+![PerfectLevel3 rain renderer after consolidation](DrawCall/PerfectLevel3/frame_debugger_after.png)
+
+The final optimized PerfectLevel3 frame contains one `rain3` event for both mirrored sides, reducing the variant from 9 to 8 Draw Calls.
+
+![PerfectLevel2 visual before consolidation](DrawCall/PerfectLevel2/visual_before_mid.png)
+
+The deterministic mid-effect frame records the original mirrored rain footprint and surrounding composition.
+
+![PerfectLevel2 visual after consolidation](DrawCall/PerfectLevel2/visual_after_mid.png)
+
+The equivalent final frame preserves the left/right footprint, timing impression, color, and overall silhouette.
+
+![PerfectLevel3 visual before consolidation](DrawCall/PerfectLevel3/visual_before_mid.png)
+
+The deterministic PerfectLevel3 mid-effect control frame.
+
+![PerfectLevel3 visual after consolidation](DrawCall/PerfectLevel3/visual_after_mid.png)
+
+The final PerfectLevel3 frame preserves the mirrored rain layer while using one renderer submission.
+
+### Rejected Transition trail consolidation
+
+![Transition before zap consolidation](DrawCall/Transition/visual_before_mid.png)
+
+The control frame contains two independent mirrored zap/trail clusters.
+
+![Transition rejected zap consolidation](DrawCall/Transition/rejected_zap_consolidation_mid.png)
+
+The candidate joined independent trail histories into obvious horizontal streaks. Despite reducing counters to 4/4/4, it failed visual validation and was reverted.
 
 ### Renderer-reduction A/B evidence
 
@@ -235,7 +344,6 @@ With only `outline_line` disabled, that surrounding white structure is missing. 
 
 ### Evidence still to capture
 
-- **TODO — Trail Frame Debugger diagnosis:** capture `PerfectLevel3/lines` main and trail render events with readable vertex/index counts.
 - **TODO — Rejected atlas experiment:** if the experiment is reconstructed for documentation only, capture the Frame Debugger event proving `outline_circle` remains separate. Do not retain the experimental assets or configuration afterward.
 - **TODO — Android final evidence:** capture equivalent Before and After Profiler evidence from the same target device and Development Build configuration.
 
@@ -245,6 +353,8 @@ With only `outline_line` disabled, that surrounding white structure is missing. 
 - Transparent ParticleSystem batching depends on more than shared shader/material compatibility. Sorting, topology, generated streams, and renderer state still matter.
 - A targeted topology setting can produce a larger and safer benefit than a more complex atlas or renderer-consolidation change.
 - A renderer can have a small pixel footprint and still provide important timing, color, or silhouette information; a lower draw-call number alone is not sufficient acceptance evidence.
+- Compatible one-shot systems can preserve independent deterministic simulation while sharing one renderer, but this is safe only when their post-emission modules and renderer state match.
+- Particle trails retain topology/history that cannot be merged by copying particles alone; the rejected zap experiment demonstrated this visually even though its counters improved.
 - An unsuccessful experiment is useful evidence when it is measured, documented, and fully reverted.
 - Editor profiling is appropriate for controlled iteration, but final mobile conclusions require a consistent on-device Development Build comparison.
 
@@ -260,5 +370,6 @@ A texture-memory audit identified possible Android memory and bandwidth experime
 
 - Android Development Build profiling is pending.
 - Final Android Before/After evidence is pending.
-- Final four-variant visual-regression validation is pending.
+- Final Editor visual comparison across early, mid, and late phases is complete for all four variants.
+- Final four-variant Android visual-regression validation is pending.
 - The Editor evidence in this report must not be presented as Android performance evidence.
