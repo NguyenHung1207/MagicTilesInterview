@@ -220,6 +220,14 @@ Because all post-emission modules and renderer state match, transferred particle
 
 Each final value was stable across three deterministic Editor replays. Frame Debugger confirmed that the baseline two-draw rain group became one named `rain3` submission.
 
+### Consolidation CPU / GC validation
+
+The final hardening audit compared the same optimized visual configuration with consolidation disabled and enabled over 240 Editor frames and five deterministic replays per PL2/PL3 configuration. Each consolidator allocates three fixed arrays once in `Awake`: a 2,000-particle target buffer, a 1,000-particle source buffer, and a 1,000-entry seed cache. The current rain systems have `maxParticles = 1,000` each but emit only two source particles in the measured deterministic burst, so the buffers have substantial headroom and never resize.
+
+The audit found unnecessary repeated reads after the one-shot rain transfer. Before hardening, five replays caused 234-235 source `GetParticles` calls and 134-161 target `GetParticles` calls, while only five `SetParticles` calls transferred new data. A playback-state guard now stops transfer work after the first successful copy and resets when the source system is stopped for replay. After the fix, each 240-frame measurement made exactly five source reads, five target reads, and five target writes for both variants.
+
+Scoped allocation counters recorded **0 managed bytes** in the consolidator hot path. Instrumented Editor timings, including the audit timer/marker overhead, averaged approximately 0.024 ms per `LateUpdate` call for PL2 and 0.012 ms for PL3; observed peaks were approximately 0.577 ms and 0.081 ms respectively. Ten rapid deterministic replays per variant produced the same particle counts and seed hashes every time, with two particles visible on each side and no accumulation or missing emitter. The final decision is to retain consolidation: its CPU work is bounded to one small transfer per playback and the 9 -> 8 Draw Call result remains stable. These Editor measurements validate relative implementation overhead only; Android device performance remains pending.
+
 ### Rejected structural candidates
 
 - **Transition `zap1/zap2` consolidation — REVERT.** The identical simulation configurations made the pair technically transferable and counters improved from 6/6/6 to 4/4/4. However, combining two independent trail histories in one renderer produced obvious horizontal connecting streaks instead of two isolated mirrored zaps. The renderer override and component were removed.
