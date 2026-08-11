@@ -12,23 +12,56 @@ public class LaneFlashController : MonoBehaviour
     [SerializeField] private float goodDuration = 0.12f;
 
     private Coroutine[] flashCoroutines;
+    private bool isInitialized;
 
     private void Awake()
     {
+        InitializeFeedback();
+    }
+
+    private void InitializeFeedback()
+    {
+        if (isInitialized)
+        {
+            return;
+        }
+
+        if (laneFlashes == null || laneFlashes.Length == 0)
+        {
+            Debug.LogError("LaneFlashController requires lane flash renderers.", this);
+            enabled = false;
+            return;
+        }
+
         flashCoroutines = new Coroutine[laneFlashes.Length];
 
         foreach (SpriteRenderer flash in laneFlashes)
         {
+            if (flash == null)
+            {
+                Debug.LogError("LaneFlashController has a missing lane flash reference.", this);
+                enabled = false;
+                return;
+            }
+
             Color color = flash.color;
             color.a = 0f;
             flash.color = color;
 
             flash.gameObject.SetActive(true);
         }
+
+        isInitialized = true;
     }
 
     private void OnEnable()
     {
+        InitializeFeedback();
+        if (!isInitialized)
+        {
+            return;
+        }
+
         Note.HitSucceeded += HandleHit;
     }
 
@@ -60,6 +93,12 @@ public class LaneFlashController : MonoBehaviour
 
     private void HandleHit(int laneIndex, HitJudgement judgement, Vector3 worldPosition)
     {
+        InitializeFeedback();
+        if (!isInitialized)
+        {
+            return;
+        }
+
         if (laneIndex < 0 || laneIndex >= laneFlashes.Length)
         {
             return;
@@ -94,7 +133,7 @@ public class LaneFlashController : MonoBehaviour
                 return;
         }
 
-    flashCoroutines[laneIndex] = StartCoroutine(FlashLane(laneIndex, flashColor, duration));
+        flashCoroutines[laneIndex] = StartCoroutine(FlashLane(laneIndex, flashColor, duration));
     }
 
     private IEnumerator FlashLane(int laneIndex, Color flashColor, float duration)

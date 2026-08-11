@@ -376,7 +376,7 @@ MonoBehaviour:
   scoreText: {fileID: 1966212003}
   comboText: {fileID: 1503055972}
   judgementText: {fileID: 543050580}
-  judgementDisplayDuration: 0.45
+  judgementDisplayDuration: 0.2
   perfectColor: {r: 1, g: 0.78, b: 0.2, a: 1}
   greatColor: {r: 0.2, g: 0.75, b: 1, a: 1}
   goodColor: {r: 0.35, g: 1, b: 0.5, a: 1}
@@ -914,6 +914,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hitBurstPrefab: {fileID: 7546876871198007846, guid: 1a55f592de81ebd43b969ce8d5695a83, type: 3}
+  poolSize: 16
   perfectColor: {r: 1, g: 0.78, b: 0.2, a: 1}
   greatColor: {r: 0.2, g: 0.75, b: 1, a: 1}
   goodColor: {r: 0.35, g: 1, b: 0.5, a: 1}
@@ -2700,7 +2701,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1305851516
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2771,11 +2772,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   flashImage: {fileID: 1305851517}
-  flashDuration: 0.2
-  maxAlpha: 0.4
+  missFlashColor: {r: 0.95, g: 0.08, b: 0.28, a: 1}
+  failedInputFlashColor: {r: 0.82, g: 0.1, b: 0.58, a: 1}
+  missFlashDuration: 0.18
+  failedInputFlashDuration: 0.14
+  missMaxAlpha: 0.34
+  failedInputMaxAlpha: 0.42
   cameraTransform: {fileID: 519420032}
-  shakeDuration: 1
-  shakeStrength: 1
+  shakeDuration: 0.14
+  missShakeStrength: 0.045
+  failedInputShakeStrength: 0.065
 --- !u!1 &1337424185
 GameObject:
   m_ObjectHideFlags: 0

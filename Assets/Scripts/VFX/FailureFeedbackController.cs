@@ -5,62 +5,92 @@ using UnityEngine.UI;
 public class FailureFeedbackController : MonoBehaviour
 {
     [SerializeField] private Image flashImage;
-    [SerializeField] private float flashDuration = 0.2f;
-    [SerializeField, Range(0f, 1f)] private float maxAlpha = 0.4f;
+    [SerializeField] private Color missFlashColor = new Color(0.95f, 0.08f, 0.28f, 1f);
+    [SerializeField] private Color failedInputFlashColor = new Color(0.82f, 0.1f, 0.58f, 1f);
+    [SerializeField] private float missFlashDuration = 0.18f;
+    [SerializeField] private float failedInputFlashDuration = 0.14f;
+    [SerializeField, Range(0f, 1f)] private float missMaxAlpha = 0.34f;
+    [SerializeField, Range(0f, 1f)] private float failedInputMaxAlpha = 0.42f;
+
     [SerializeField] private Transform cameraTransform;
-    [SerializeField] private float shakeDuration = 0.15f;
-    [SerializeField] private float shakeStrength = 0.08f;
+    [SerializeField] private float shakeDuration = 0.14f;
+    [SerializeField] private float missShakeStrength = 0.045f;
+    [SerializeField] private float failedInputShakeStrength = 0.065f;
 
     private Coroutine shakeCoroutine;
     private Vector3 cameraBasePosition;
     private Coroutine flashCoroutine;
 
-    public void PlayFailure()
+    private void Awake()
     {
-        if (flashCoroutine != null)
+        if (flashImage == null)
         {
-            StopCoroutine(flashCoroutine);
+            Debug.LogError("FailureFeedbackController requires a flash image.", this);
+            enabled = false;
+            return;
         }
-
-        if (shakeCoroutine != null)
-        {
-            StopCoroutine(shakeCoroutine);
-
-            if (cameraTransform != null)
-            {
-                cameraTransform.position = cameraBasePosition;
-            }
-        }
-
-        flashCoroutine = StartCoroutine(Flash());
 
         if (cameraTransform != null)
         {
-            shakeCoroutine = StartCoroutine(ShakeCamera());
+            cameraBasePosition = cameraTransform.position;
+        }
+
+        SetFlashAlpha(0f);
+    }
+
+    private void OnEnable()
+    {
+        Note.Judged += HandleJudgement;
+        NoteInputController.FailedInput += PlayFailedInput;
+    }
+
+    private void OnDisable()
+    {
+        StopActiveFeedback();
+        Note.Judged -= HandleJudgement;
+        NoteInputController.FailedInput -= PlayFailedInput;
+    }
+
+    private void HandleJudgement(HitJudgement judgement)
+    {
+        if (judgement == HitJudgement.Miss)
+        {
+            PlayFailure(missFlashColor, missFlashDuration, missMaxAlpha, missShakeStrength);
         }
     }
 
-    private IEnumerator ShakeCamera()
+    private void PlayFailedInput()
+    {
+        PlayFailure(
+            failedInputFlashColor,
+            failedInputFlashDuration,
+            failedInputMaxAlpha,
+            failedInputShakeStrength);
+    }
+
+    private void PlayFailure(Color color, float flashDuration, float maxAlpha, float shakeStrength)
+    {
+        StopActiveFeedback();
+        flashCoroutine = StartCoroutine(Flash(color, flashDuration, maxAlpha));
+
+        if (cameraTransform != null)
+        {
+            shakeCoroutine = StartCoroutine(ShakeCamera(shakeStrength));
+        }
+    }
+
+    private IEnumerator ShakeCamera(float maximumStrength)
     {
         float elapsed = 0f;
 
         while (elapsed < shakeDuration)
         {
             elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / shakeDuration);
+            float strength = Mathf.Lerp(maximumStrength, 0f, progress);
+            Vector2 offset = Random.insideUnitCircle * strength;
 
-            float progress = Mathf.Clamp01(
-                elapsed / shakeDuration);
-
-            float strength =
-                Mathf.Lerp(shakeStrength, 0f, progress);
-
-            Vector2 offset =
-                UnityEngine.Random.insideUnitCircle * strength;
-
-            cameraTransform.position =
-                cameraBasePosition +
-                new Vector3(offset.x, offset.y, 0f);
-
+            cameraTransform.position = cameraBasePosition + new Vector3(offset.x, offset.y, 0f);
             yield return null;
         }
 
@@ -68,64 +98,27 @@ public class FailureFeedbackController : MonoBehaviour
         shakeCoroutine = null;
     }
 
-    private IEnumerator Flash()
+    private IEnumerator Flash(Color color, float duration, float maxAlpha)
     {
-        Color color = flashImage.color;
         color.a = maxAlpha;
         flashImage.color = color;
 
         float elapsed = 0f;
 
-        while (elapsed < flashDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-
-            float t = Mathf.Clamp01(elapsed / flashDuration);
-
-            color.a = Mathf.Lerp(maxAlpha, 0f, t);
+            float progress = Mathf.Clamp01(elapsed / duration);
+            color.a = Mathf.Lerp(maxAlpha, 0f, progress);
             flashImage.color = color;
-
             yield return null;
         }
 
-        color.a = 0f;
-        flashImage.color = color;
-
+        SetFlashAlpha(0f);
         flashCoroutine = null;
     }
 
-    private void Awake()
-    {
-        if (cameraTransform != null)
-        {
-            cameraBasePosition = cameraTransform.position;
-        }
-
-        if (flashImage == null)
-        {
-            return;
-        }
-
-        Color color = flashImage.color;
-        color.a = 0f;
-        flashImage.color = color;
-    }
-
-    private void OnEnable()
-    {
-        Note.Judged += HandleJudgement;
-        NoteInputController.FailedInput += PlayFailure;
-    }
-
-    private void HandleJudgement(HitJudgement judgement)
-    {
-        if (judgement == HitJudgement.Miss)
-        {
-            PlayFailure();
-        }
-    }
-
-    private void OnDisable()
+    private void StopActiveFeedback()
     {
         if (flashCoroutine != null)
         {
@@ -144,7 +137,16 @@ public class FailureFeedbackController : MonoBehaviour
             cameraTransform.position = cameraBasePosition;
         }
 
-        Note.Judged -= HandleJudgement;
-        NoteInputController.FailedInput -= PlayFailure;
+        if (flashImage != null)
+        {
+            SetFlashAlpha(0f);
+        }
+    }
+
+    private void SetFlashAlpha(float alpha)
+    {
+        Color color = flashImage.color;
+        color.a = alpha;
+        flashImage.color = color;
     }
 }
