@@ -56,7 +56,6 @@ public class Note : MonoBehaviour
         if (currentSongTime > hitTime + MissDelay)
         {
             isResolved = true;
-            Debug.Log("Miss", this);
             Judged?.Invoke(HitJudgement.Miss);
             Destroy(gameObject);
         }
@@ -73,7 +72,6 @@ public class Note : MonoBehaviour
 
         SetResolvedVisual();
 
-        Debug.Log(judgement, this);
         Judged?.Invoke(judgement);
         HitSucceeded?.Invoke(laneIndex, judgement, transform.position);
 
