@@ -70,6 +70,7 @@ public class FailureFeedbackController : MonoBehaviour
 
     private void PlayFailure(Color color, float flashDuration, float maxAlpha, float shakeStrength)
     {
+        SfxController.PlayMiss();
         StopActiveFeedback();
         flashCoroutine = StartCoroutine(Flash(color, flashDuration, maxAlpha));
 

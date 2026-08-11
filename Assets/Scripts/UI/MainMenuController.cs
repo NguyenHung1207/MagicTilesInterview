@@ -49,6 +49,7 @@ public class MainMenuController : MonoBehaviour
 
     private void SelectSong(SongDefinition song)
     {
+        SfxController.PlayUIClick();
         SelectedSongContext.Select(song);
         SceneManager.LoadScene(gameplaySceneName);
     }

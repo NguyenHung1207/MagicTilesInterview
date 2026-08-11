@@ -59,24 +59,39 @@ public sealed class ResultScreenController : MonoBehaviour
     {
         SetInteraction(gameOverCanvasGroup, false);
         SetInteraction(winCanvasGroup, false);
+        SfxController.PlayUIClick();
         SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    public void RestartGame()
+    {
+        SetInteraction(gameOverCanvasGroup, false);
+        SetInteraction(winCanvasGroup, false);
+        SfxController.PlayUIClick();
+        gameplayController.RestartGame();
     }
 
     private void ShowGameOver()
     {
-        ShowResult(gameOverPanel, gameOverCanvasGroup, gameOverCard, gameOverFinalScoreText);
+        if (ShowResult(gameOverPanel, gameOverCanvasGroup, gameOverCard, gameOverFinalScoreText))
+        {
+            SfxController.PlayGameOver();
+        }
     }
 
     private void ShowWin()
     {
-        ShowResult(winPanel, winCanvasGroup, winCard, winFinalScoreText);
+        if (ShowResult(winPanel, winCanvasGroup, winCard, winFinalScoreText))
+        {
+            SfxController.PlayVictory();
+        }
     }
 
-    private void ShowResult(GameObject panel, CanvasGroup canvasGroup, RectTransform card, TMP_Text scoreText)
+    private bool ShowResult(GameObject panel, CanvasGroup canvasGroup, RectTransform card, TMP_Text scoreText)
     {
         if (resultVisible)
         {
-            return;
+            return false;
         }
 
         resultVisible = true;
@@ -89,6 +104,7 @@ public sealed class ResultScreenController : MonoBehaviour
 
         presentationCoroutine = StartCoroutine(
             PresentResult(canvasGroup, card, scoreText, scoreManager.Score));
+        return true;
     }
 
     private IEnumerator PresentResult(
