@@ -1066,7 +1066,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: MAGIC TITLE
+  m_text: MAGIC TILES
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c5d1e940dd661b54fb2e7bdd5706eaa5, type: 2}
   m_sharedMaterial: {fileID: 2253639955142393946, guid: c5d1e940dd661b54fb2e7bdd5706eaa5, type: 2}

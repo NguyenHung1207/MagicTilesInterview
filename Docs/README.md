@@ -70,6 +70,8 @@ The START tile is on the third visual lane (zero-based lane index `2`). It must 
 
 The displayed combo therefore represents consecutive Perfect hits. Result screens present the final score; no persistent best-score or judgement-statistics system is implemented.
 
+These tiered scores are the project's Advanced Timing extension of the assignment's baseline Hit +100 / Miss 0 model.
+
 ## Songs and Selection
 
 `Assets/GameData/Songs/Catalogs/MainSongCatalog.asset` currently contains:
