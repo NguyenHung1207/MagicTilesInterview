@@ -248,4 +248,5 @@ These records should be completed before public distribution.
 ## Repository Notes
 
 - Keep generated APK/AAB output outside `Assets/` and untracked.
-- Detailed Task 2 optimization work is maintained separately; no optimization report is present on the current `main` branch, so benchmark claims are intentionally omitted here.
+- Task 1 project documentation is maintained in this README.
+- Task 2 optimization methodology, before/after profiling evidence, trade-offs, and measurements are documented in [`Docs/Optimization/OPTIMIZATION.md`](Optimization/OPTIMIZATION.md), with final evidence in [`Docs/Optimization/FinalEvidence/`](Optimization/FinalEvidence/).
