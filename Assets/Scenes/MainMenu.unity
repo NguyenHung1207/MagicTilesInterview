@@ -493,7 +493,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1354532151}
-  - {fileID: 331368935}
   - {fileID: 47793805}
   m_Father: {fileID: 2099100001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -632,7 +631,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 244856594}
+  m_Father: {fileID: 2099100001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
@@ -659,7 +658,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: SELECT SONG
+  m_text: NEON TILES
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: b1f2b7388b57e0346989aa8203e9fa94, type: 2}
   m_sharedMaterial: {fileID: 2144079925724953147, guid: b1f2b7388b57e0346989aa8203e9fa94, type: 2}
@@ -974,6 +973,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1266711622}
   - component: {fileID: 1266711621}
+  - component: {fileID: 2101100001}
   m_Layer: 0
   m_Name: MenuBackground
   m_TagString: Untagged
@@ -1023,7 +1023,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: -100
   m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Color: {r: 0.035, g: 0.026, b: 0.105, a: 1}
+  m_Color: {r: 0.035, g: 0.026, b: 0.105, a: 0.22}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1033,6 +1033,20 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &2101100001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266711620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad7d9de8bb1c4892abd043c1bfaae6e4, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  videoClip: {fileID: 32900000, guid: e3e1e74f6dec4217a8da168580948cb0, type: 3}
+  targetCamera: {fileID: 305875047}
 --- !u!224 &1266711622
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1481,6 +1495,7 @@ RectTransform:
   m_Children:
   - {fileID: 244856594}
   - {fileID: 1235328914}
+  - {fileID: 331368935}
   m_Father: {fileID: 2064861691}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

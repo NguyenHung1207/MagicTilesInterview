@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1e601b483cf478245a70af74ce701b04, type: 3}
-  m_Name: DemoSongTheme
-  m_EditorClassIdentifier: 
+  m_Name: Sonata01Theme
+  m_EditorClassIdentifier:
   videoClip: {fileID: 32900000, guid: 66cc64111a854e0aae31c3b52df11984, type: 3}
-  videoOverlayColor: {r: 0.015, g: 0.025, b: 0.11, a: 0.22}
-  primaryColor: {r: 0, g: 0, b: 1, a: 1}
-  secondaryColor: {r: 0, g: 1, b: 1, a: 1}
-  accentColor: {r: 1, g: 1, b: 1, a: 1}
-  driftSpeed: 0.2
-  rotationSpeed: 6
-  pulseSpeed: 0.8
-  pulseAmount: 0.04
+  videoOverlayColor: {r: 0.015, g: 0.02, b: 0.12, a: 0.45}
+  primaryColor: {r: 0.08, g: 0.18, b: 0.55, a: 1}
+  secondaryColor: {r: 0.2, g: 0.55, b: 1, a: 1}
+  accentColor: {r: 0.55, g: 0.25, b: 1, a: 1}
+  driftSpeed: 0.18
+  rotationSpeed: 5
+  pulseSpeed: 0.7
+  pulseAmount: 0.035

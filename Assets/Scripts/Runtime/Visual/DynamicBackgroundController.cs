@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Video;
 
 [DisallowMultipleComponent]
 public class DynamicBackgroundController : MonoBehaviour
@@ -20,9 +21,11 @@ public class DynamicBackgroundController : MonoBehaviour
     private float animationTime;
     private bool initialStateCached;
     private bool hasTheme;
+    private VideoPlayer videoPlayer;
 
     private void Awake()
     {
+        EnsureVideoPlayer();
         EnsureInitialState();
     }
 
@@ -41,8 +44,11 @@ public class DynamicBackgroundController : MonoBehaviour
             return;
         }
 
-        Color baseColor = Color.Lerp(Color.black, theme.PrimaryColor, 0.22f);
-        baseColor.a = theme.PrimaryColor.a;
+        ApplyVideo(theme.VideoClip);
+
+        Color baseColor = theme.VideoClip != null
+            ? theme.VideoOverlayColor
+            : Color.Lerp(Color.black, theme.PrimaryColor, 0.22f);
         baseRenderer.color = baseColor;
 
         for (int index = 0; index < decorativeRenderers.Length; index++)
@@ -62,6 +68,50 @@ public class DynamicBackgroundController : MonoBehaviour
         hasTheme = true;
 
         ResetTransforms();
+    }
+
+    private void ApplyVideo(VideoClip clip)
+    {
+        EnsureVideoPlayer();
+
+        if (clip == null)
+        {
+            videoPlayer.Stop();
+            videoPlayer.clip = null;
+            return;
+        }
+
+        if (videoPlayer.clip != clip)
+        {
+            videoPlayer.Stop();
+            videoPlayer.clip = clip;
+        }
+
+        videoPlayer.Play();
+    }
+
+    private void EnsureVideoPlayer()
+    {
+        if (videoPlayer != null)
+        {
+            return;
+        }
+
+        videoPlayer = GetComponent<VideoPlayer>();
+        if (videoPlayer == null)
+        {
+            videoPlayer = gameObject.AddComponent<VideoPlayer>();
+        }
+
+        videoPlayer.playOnAwake = false;
+        videoPlayer.isLooping = true;
+        videoPlayer.waitForFirstFrame = true;
+        videoPlayer.skipOnDrop = true;
+        videoPlayer.renderMode = VideoRenderMode.CameraFarPlane;
+        videoPlayer.aspectRatio = VideoAspectRatio.FitOutside;
+        videoPlayer.targetCamera = Camera.main;
+        videoPlayer.targetCameraAlpha = 1f;
+        videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
     }
 
     private void Update()

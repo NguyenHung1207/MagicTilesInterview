@@ -17,5 +17,5 @@ MonoBehaviour:
   artist:
   audioClip: {fileID: 8300000, guid: 8d6a4d8347800d64a8cb577d10319bdc, type: 3}
   chartAsset: {fileID: 4900000, guid: 6cfe32053d7049b4591a5be12ce4e3ba, type: 3}
-  coverSprite: {fileID: 0}
-  backgroundTheme: {fileID: 11400000, guid: 368415b4a2203504d820eb4b210b53bb, type: 2}
+  coverSprite: {fileID: 21300000, guid: 5f1dda17d5d34fc4b5e8e97a8e4a0e3b, type: 3}
+  backgroundTheme: {fileID: 11400000, guid: a98df994a31b44c2a9e894f23e2301cc, type: 2}

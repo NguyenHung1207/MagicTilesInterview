@@ -17,5 +17,5 @@ MonoBehaviour:
   artist: Unknown
   audioClip: {fileID: 8300000, guid: cd1621e4dde12db4eb8c01f4b0f4fd64, type: 3}
   chartAsset: {fileID: 4900000, guid: d2783314306b4ee48ba68c74c9db236c, type: 3}
-  coverSprite: {fileID: 0}
+  coverSprite: {fileID: 21300000, guid: 374be04c1fe74408a2dcca21d8ae2621, type: 3}
   backgroundTheme: {fileID: 11400000, guid: 368415b4a2203504d820eb4b210b53bb, type: 2}
