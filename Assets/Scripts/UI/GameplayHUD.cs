@@ -26,13 +26,6 @@ public class GameplayHUD : MonoBehaviour
     [SerializeField] private float comboPeakScale = 1.2f;
 
     [SerializeField] private float scorePeakScale = 1.08f;
-    [SerializeField] private GameplayController gameplayController;
-
-    [SerializeField] private GameObject gameOverPanel;
-    [SerializeField] private TMP_Text gameOverFinalScoreText;
-
-    [SerializeField] private GameObject winPanel;
-    [SerializeField] private TMP_Text winFinalScoreText;
     private Coroutine comboCoroutine;
     private Vector3 comboBaseScale;
     private Coroutine scoreCoroutine;
@@ -45,8 +38,6 @@ public class GameplayHUD : MonoBehaviour
     {
         scoreManager.ScoreChanged += UpdateScore;
         Note.Judged += ShowJudgement;
-        gameplayController.GameOver += ShowGameOver;
-        gameplayController.GameWon += ShowWin;
     }
 
     private void OnDisable()
@@ -83,8 +74,6 @@ public class GameplayHUD : MonoBehaviour
 
         scoreManager.ScoreChanged -= UpdateScore;
         Note.Judged -= ShowJudgement;
-        gameplayController.GameOver -= ShowGameOver;
-        gameplayController.GameWon -= ShowWin;
     }
 
     private void UpdateScore(int score, int combo)
@@ -204,9 +193,6 @@ public class GameplayHUD : MonoBehaviour
         displayedScore = scoreManager.Score;
 
         UpdateScore(scoreManager.Score, scoreManager.Combo);
-
-        gameOverPanel.SetActive(false);
-        winPanel.SetActive(false);
     }
 
     private void ShowJudgement(HitJudgement judgement)
@@ -281,17 +267,4 @@ public class GameplayHUD : MonoBehaviour
 
         judgementCoroutine = null;
     }
-
-    private void ShowGameOver()
-    {
-        gameOverFinalScoreText.text = $"Score: {scoreManager.Score}";
-        gameOverPanel.SetActive(true);
-    }
-
-    private void ShowWin()
-    {
-        winFinalScoreText.text = $"Score: {scoreManager.Score}";
-        winPanel.SetActive(true);
-    }
-
 }
