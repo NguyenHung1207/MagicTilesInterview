@@ -8,7 +8,11 @@ public class SongConductor : MonoBehaviour
 
     private bool isSongScheduled;
     private bool isSongStopped;
+    private bool isSongPaused;
     private double stoppedSongTime;
+    private double pausedSongTime;
+
+    public bool IsPaused => isSongPaused;
 
     public double SongTime
     {
@@ -24,8 +28,37 @@ public class SongConductor : MonoBehaviour
                 return stoppedSongTime;
             }
 
+            if (isSongPaused)
+            {
+                return pausedSongTime;
+            }
+
             return AudioSettings.dspTime - songStartDspTime;
         }
+    }
+
+    public void PauseSong()
+    {
+        if (!isSongScheduled || isSongStopped || isSongPaused)
+        {
+            return;
+        }
+
+        pausedSongTime = SongTime;
+        isSongPaused = true;
+        musicSource.Pause();
+    }
+
+    public void ResumeSong()
+    {
+        if (!isSongScheduled || isSongStopped || !isSongPaused)
+        {
+            return;
+        }
+
+        songStartDspTime = AudioSettings.dspTime - pausedSongTime;
+        isSongPaused = false;
+        musicSource.UnPause();
     }
     private void StartSong()
     {
@@ -49,6 +82,7 @@ public class SongConductor : MonoBehaviour
         }
         stoppedSongTime = SongTime;
         isSongStopped = true;
+        isSongPaused = false;
         musicSource.Stop();
     }
 
@@ -66,7 +100,7 @@ public class SongConductor : MonoBehaviour
     {
         get
         {
-            if (!isSongScheduled || isSongStopped || musicSource.clip == null)
+            if (!isSongScheduled || isSongStopped || isSongPaused || musicSource.clip == null)
             {
                 return false;
             }

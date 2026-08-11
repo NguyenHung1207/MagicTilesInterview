@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using UnityEngine.EventSystems;
 
 public class NoteInputController : MonoBehaviour
 {
@@ -28,6 +29,11 @@ public class NoteInputController : MonoBehaviour
                     continue;
                 }
 
+                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                {
+                    continue;
+                }
+
                 TryHitAtScreenPosition(touch.position);
 
                 if (!enabled)
@@ -41,6 +47,11 @@ public class NoteInputController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
             TryHitAtScreenPosition(Input.mousePosition);
         }
     }
