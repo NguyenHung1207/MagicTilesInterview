@@ -11,6 +11,7 @@ public class DynamicBackgroundController : MonoBehaviour
     [SerializeField] private Transform[] animatedTransforms;
     [SerializeField] private float driftDistance = 0.2f;
     [SerializeField, Min(1f)] private float preparationTimeout = 10f;
+    [SerializeField, Range(2, 8)] private int stableAdvancingFrameCount = 4;
 
     private Vector3[] initialPositions;
     private Quaternion[] initialRotations;
@@ -28,8 +29,12 @@ public class DynamicBackgroundController : MonoBehaviour
     private Coroutine preparationTimeoutRoutine;
     private bool readinessResolved;
     private bool failureReported;
+    private long lastObservedFrame = -1;
+    private int observedAdvancingFrames;
 
     public bool IsReady { get; private set; }
+    public bool IsVideoPrepared { get; private set; }
+    public int ObservedAdvancingFrames => observedAdvancingFrames;
     public event Action BackgroundReady;
 
     private void Awake()
@@ -135,6 +140,7 @@ public class DynamicBackgroundController : MonoBehaviour
             return;
         }
 
+        IsVideoPrepared = true;
         preparedPlayer.Play();
     }
 
@@ -145,7 +151,28 @@ public class DynamicBackgroundController : MonoBehaviour
             return;
         }
 
-        ResolveReadiness();
+        if (frameIndex < 0)
+        {
+            return;
+        }
+
+        if (lastObservedFrame >= 0 && frameIndex <= lastObservedFrame)
+        {
+            if (frameIndex < lastObservedFrame)
+            {
+                observedAdvancingFrames = 0;
+            }
+
+            return;
+        }
+
+        lastObservedFrame = frameIndex;
+        observedAdvancingFrames++;
+
+        if (observedAdvancingFrames >= Mathf.Max(2, stableAdvancingFrameCount))
+        {
+            ResolveReadiness();
+        }
     }
 
     private void HandleVideoError(VideoPlayer failedPlayer, string message)
@@ -189,6 +216,9 @@ public class DynamicBackgroundController : MonoBehaviour
         readinessResolved = false;
         failureReported = false;
         IsReady = false;
+        IsVideoPrepared = false;
+        lastObservedFrame = -1;
+        observedAdvancingFrames = 0;
     }
 
     private void ResolveReadiness()

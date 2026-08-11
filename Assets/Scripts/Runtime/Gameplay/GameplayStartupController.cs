@@ -7,7 +7,8 @@ public sealed class GameplayStartupController : MonoBehaviour
 {
     private enum StartupState
     {
-        LoadingBackground,
+        PreparingBackground,
+        WarmingUp,
         ReadyToStart,
         Playing
     }
@@ -29,6 +30,8 @@ public sealed class GameplayStartupController : MonoBehaviour
 
     private StartupState state;
     private Color loadingBaseColor;
+    private bool backgroundReady;
+    private bool warmupFailureReported;
 
     public bool IsPlaying => state == StartupState.Playing;
     public bool IsReadyToStart => state == StartupState.ReadyToStart;
@@ -44,7 +47,7 @@ public sealed class GameplayStartupController : MonoBehaviour
             return;
         }
 
-        state = StartupState.LoadingBackground;
+        state = StartupState.PreparingBackground;
         noteSpawner.enabled = false;
         inputController.enabled = false;
         pauseMenuController.SetGameplayStarted(false);
@@ -63,6 +66,16 @@ public sealed class GameplayStartupController : MonoBehaviour
 
     private void Start()
     {
+        backgroundReady = backgroundController.IsReady;
+
+        if (!noteSpawner.Prewarm())
+        {
+            ReportWarmupFailureOnce("Gameplay note prewarm could not be completed.");
+            return;
+        }
+
+        StartCoroutine(WaitForRequiredReadiness());
+
         if (backgroundController.IsReady)
         {
             HandleBackgroundReady();
@@ -79,7 +92,7 @@ public sealed class GameplayStartupController : MonoBehaviour
 
     private void Update()
     {
-        if (state != StartupState.LoadingBackground)
+        if (state == StartupState.ReadyToStart || state == StartupState.Playing)
         {
             return;
         }
@@ -92,15 +105,66 @@ public sealed class GameplayStartupController : MonoBehaviour
 
     private void HandleBackgroundReady()
     {
-        if (state != StartupState.LoadingBackground)
+        if (state != StartupState.PreparingBackground && state != StartupState.WarmingUp)
         {
             return;
         }
 
+        backgroundReady = true;
+        state = StartupState.WarmingUp;
+    }
+
+    private IEnumerator WaitForRequiredReadiness()
+    {
+        // Let the loading presentation render before requesting potentially expensive audio data.
+        yield return null;
+
+        while (state == StartupState.PreparingBackground || state == StartupState.WarmingUp)
+        {
+            if (songConductor.HasAudioLoadFailed)
+            {
+                ReportWarmupFailureOnce("Gameplay music could not be loaded.");
+                yield break;
+            }
+
+            if (noteSpawner.HasChartFailed)
+            {
+                ReportWarmupFailureOnce("Gameplay chart initialization failed.");
+                yield break;
+            }
+
+            if (songConductor.AudioLoadState == AudioDataLoadState.Unloaded)
+            {
+                songConductor.PrepareAudioData();
+            }
+
+            if (backgroundReady && songConductor.IsAudioReady && noteSpawner.IsReady)
+            {
+                EnterReadyToStart();
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
+    private void EnterReadyToStart()
+    {
         state = StartupState.ReadyToStart;
         loadingPresentation.SetActive(false);
         loadingText.color = loadingBaseColor;
         startTile.Show(startLane.HitPoint.position, StartGameplay);
+    }
+
+    private void ReportWarmupFailureOnce(string message)
+    {
+        if (warmupFailureReported)
+        {
+            return;
+        }
+
+        warmupFailureReported = true;
+        Debug.LogError(message, this);
     }
 
     private void StartGameplay()

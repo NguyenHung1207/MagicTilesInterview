@@ -9,8 +9,14 @@ public class NoteSpawner : MonoBehaviour
     [SerializeField] private Note notePrefab;
     [SerializeField] private LaneView[] lanes;
     public int TotalNoteCount => chartLoader.Notes.Count;
+    public bool IsChartReady => chartLoader != null && chartLoader.IsReady;
+    public bool HasChartFailed => chartLoader != null && chartLoader.HasFailed;
+    public bool IsPrewarmed => prewarmComplete;
+    public bool IsReady => configurationReady && IsChartReady && IsPrewarmed;
 
     private int nextNoteIndex;
+    private bool configurationReady;
+    private bool prewarmComplete;
 
     private void Awake()
     {
@@ -48,6 +54,28 @@ public class NoteSpawner : MonoBehaviour
             enabled = false;
             return;
         }
+
+        configurationReady = true;
+    }
+
+    public bool Prewarm()
+    {
+        if (prewarmComplete)
+        {
+            return true;
+        }
+
+        if (!configurationReady || notePrefab == null)
+        {
+            return false;
+        }
+
+        Note prewarmedNote = Instantiate(notePrefab, transform.position, Quaternion.identity, transform);
+        prewarmedNote.name = "NotePrewarm";
+        prewarmedNote.gameObject.SetActive(false);
+        Destroy(prewarmedNote.gameObject);
+        prewarmComplete = true;
+        return true;
     }
 
     private void Update()

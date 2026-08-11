@@ -9,11 +9,21 @@ public class SongConductor : MonoBehaviour
     private bool isSongScheduled;
     private bool isSongStopped;
     private bool isSongPaused;
+    private bool audioLoadFailureReported;
     private double stoppedSongTime;
     private double pausedSongTime;
 
     public bool IsPaused => isSongPaused;
     public bool HasStarted => isSongScheduled && !isSongStopped;
+    public bool IsAudioReady => musicSource != null
+        && musicSource.clip != null
+        && musicSource.clip.loadState == AudioDataLoadState.Loaded;
+    public bool HasAudioLoadFailed => musicSource != null
+        && musicSource.clip != null
+        && musicSource.clip.loadState == AudioDataLoadState.Failed;
+    public AudioDataLoadState AudioLoadState => musicSource != null && musicSource.clip != null
+        ? musicSource.clip.loadState
+        : AudioDataLoadState.Unloaded;
 
     public double SongTime
     {
@@ -75,6 +85,12 @@ public class SongConductor : MonoBehaviour
             return false;
         }
 
+        if (!IsAudioReady)
+        {
+            Debug.LogError("SongConductor requires loaded audio data before StartSong.", this);
+            return false;
+        }
+
         // Schedule slightly ahead so the audio system can prepare playback.
         songStartDspTime = AudioSettings.dspTime + startDelay;
         musicSource.PlayScheduled(songStartDspTime);
@@ -120,5 +136,51 @@ public class SongConductor : MonoBehaviour
     public void SetSong(AudioClip clip)
     {
         musicSource.clip = clip;
+        audioLoadFailureReported = false;
+    }
+
+    public bool PrepareAudioData()
+    {
+        if (musicSource == null || musicSource.clip == null)
+        {
+            ReportAudioLoadFailureOnce("SongConductor cannot preload a missing AudioClip.");
+            return false;
+        }
+
+        switch (musicSource.clip.loadState)
+        {
+            case AudioDataLoadState.Loaded:
+            case AudioDataLoadState.Loading:
+                return true;
+
+            case AudioDataLoadState.Failed:
+                ReportAudioLoadFailureOnce(
+                    $"Audio data failed to load for '{musicSource.clip.name}'.");
+                return false;
+
+            case AudioDataLoadState.Unloaded:
+                if (musicSource.clip.LoadAudioData())
+                {
+                    return true;
+                }
+
+                ReportAudioLoadFailureOnce(
+                    $"Audio data could not be requested for '{musicSource.clip.name}'.");
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    private void ReportAudioLoadFailureOnce(string message)
+    {
+        if (audioLoadFailureReported)
+        {
+            return;
+        }
+
+        audioLoadFailureReported = true;
+        Debug.LogError(message, this);
     }
 }
