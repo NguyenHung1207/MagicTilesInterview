@@ -1,6 +1,6 @@
-# NEON TILES
+# MAGIC TILES
 
-NEON TILES is a portrait-oriented Unity rhythm game created for the UPLIVE Unity Developer home test. It combines a data-driven four-song library, preprocessed MIDI charts, DSP-clock timing, touch/mouse input, and lightweight neon presentation.
+MAGIC TILES is a portrait-oriented Unity rhythm game created for the UPLIVE "Magic Tiles 3 (Simplified)" Unity Developer home test. It combines a data-driven four-song library, preprocessed MIDI charts, DSP-clock timing, touch/mouse input, and lightweight neon presentation.
 
 ## Overview
 
