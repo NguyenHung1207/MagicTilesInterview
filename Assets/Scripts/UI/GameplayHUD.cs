@@ -9,12 +9,12 @@ public class GameplayHUD : MonoBehaviour
     [SerializeField] private TMP_Text comboText;
 
     [SerializeField] private TMP_Text judgementText;
-    [SerializeField] private float judgementDisplayDuration = 0.3f;
     [SerializeField] private Color perfectColor = new Color(1f, 0.78f, 0.2f);
     [SerializeField] private Color greatColor = new Color(0.2f, 0.75f, 1f);
 
     [SerializeField] private Color goodColor = new Color(0.35f, 1f, 0.5f);
     [SerializeField] private float judgementPunchDuration = 0.14f;
+    [SerializeField] private float judgementDisplayDuration = 0.2f;
     [SerializeField] private float judgementFadeDuration = 0.12f;
     [SerializeField] private float comboPunchDuration = 0.14f;
     [SerializeField] private float scorePunchDuration = 0.1f;
