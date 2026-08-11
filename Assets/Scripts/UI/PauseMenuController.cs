@@ -26,6 +26,7 @@ public sealed class PauseMenuController : MonoBehaviour
     private Coroutine presentationCoroutine;
     private bool isPaused;
     private bool terminalStateReached;
+    private bool gameplayStarted;
 
     public bool IsPaused => isPaused;
 
@@ -41,7 +42,7 @@ public sealed class PauseMenuController : MonoBehaviour
         }
 
         HideImmediately();
-        pauseButton.interactable = true;
+        SetGameplayStarted(false);
     }
 
     private void OnEnable()
@@ -64,7 +65,7 @@ public sealed class PauseMenuController : MonoBehaviour
 
     public void PauseGame()
     {
-        if (isPaused || terminalStateReached || gameplayController.IsGameOver || gameplayController.IsGameWon)
+        if (!gameplayStarted || isPaused || terminalStateReached || gameplayController.IsGameOver || gameplayController.IsGameWon)
         {
             return;
         }
@@ -164,9 +165,16 @@ public sealed class PauseMenuController : MonoBehaviour
     private void HandleTerminalState()
     {
         terminalStateReached = true;
-        pauseButton.interactable = false;
+        SetGameplayStarted(false);
         isPaused = false;
         HideImmediately();
+    }
+
+    public void SetGameplayStarted(bool started)
+    {
+        gameplayStarted = started && !terminalStateReached;
+        pauseButton.gameObject.SetActive(gameplayStarted);
+        pauseButton.interactable = gameplayStarted && !isPaused;
     }
 
     private void PrepareSceneExit()

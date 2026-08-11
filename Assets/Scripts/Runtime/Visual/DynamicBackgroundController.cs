@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -8,6 +10,7 @@ public class DynamicBackgroundController : MonoBehaviour
     [SerializeField] private SpriteRenderer[] decorativeRenderers;
     [SerializeField] private Transform[] animatedTransforms;
     [SerializeField] private float driftDistance = 0.2f;
+    [SerializeField, Min(1f)] private float preparationTimeout = 10f;
 
     private Vector3[] initialPositions;
     private Quaternion[] initialRotations;
@@ -22,11 +25,37 @@ public class DynamicBackgroundController : MonoBehaviour
     private bool initialStateCached;
     private bool hasTheme;
     private VideoPlayer videoPlayer;
+    private Coroutine preparationTimeoutRoutine;
+    private bool readinessResolved;
+    private bool failureReported;
+
+    public bool IsReady { get; private set; }
+    public event Action BackgroundReady;
 
     private void Awake()
     {
         EnsureVideoPlayer();
         EnsureInitialState();
+    }
+
+    private void OnEnable()
+    {
+        EnsureVideoPlayer();
+        videoPlayer.prepareCompleted += HandlePrepared;
+        videoPlayer.frameReady += HandleFrameReady;
+        videoPlayer.errorReceived += HandleVideoError;
+    }
+
+    private void OnDisable()
+    {
+        if (videoPlayer != null)
+        {
+            videoPlayer.prepareCompleted -= HandlePrepared;
+            videoPlayer.frameReady -= HandleFrameReady;
+            videoPlayer.errorReceived -= HandleVideoError;
+        }
+
+        StopPreparationTimeout();
     }
 
     public void ApplyTheme(BackgroundTheme theme)
@@ -36,6 +65,11 @@ public class DynamicBackgroundController : MonoBehaviour
             Debug.LogWarning(
                 "DynamicBackgroundController received no theme; keeping the fallback background.",
                 this);
+            EnsureVideoPlayer();
+            ResetReadiness();
+            videoPlayer.Stop();
+            videoPlayer.clip = null;
+            ResolveReadiness();
             return;
         }
 
@@ -73,11 +107,13 @@ public class DynamicBackgroundController : MonoBehaviour
     private void ApplyVideo(VideoClip clip)
     {
         EnsureVideoPlayer();
+        ResetReadiness();
 
         if (clip == null)
         {
             videoPlayer.Stop();
             videoPlayer.clip = null;
+            ResolveReadiness();
             return;
         }
 
@@ -87,7 +123,107 @@ public class DynamicBackgroundController : MonoBehaviour
             videoPlayer.clip = clip;
         }
 
-        videoPlayer.Play();
+        videoPlayer.sendFrameReadyEvents = true;
+        videoPlayer.Prepare();
+        preparationTimeoutRoutine = StartCoroutine(PreparationTimeout());
+    }
+
+    private void HandlePrepared(VideoPlayer preparedPlayer)
+    {
+        if (readinessResolved || preparedPlayer != videoPlayer)
+        {
+            return;
+        }
+
+        preparedPlayer.Play();
+    }
+
+    private void HandleFrameReady(VideoPlayer framePlayer, long frameIndex)
+    {
+        if (readinessResolved || framePlayer != videoPlayer)
+        {
+            return;
+        }
+
+        ResolveReadiness();
+    }
+
+    private void HandleVideoError(VideoPlayer failedPlayer, string message)
+    {
+        if (readinessResolved || failedPlayer != videoPlayer)
+        {
+            return;
+        }
+
+        ReportFailureOnce($"Gameplay background video could not be prepared: {message}");
+        UseFallbackBackground();
+    }
+
+    private IEnumerator PreparationTimeout()
+    {
+        float elapsed = 0f;
+        while (!readinessResolved && elapsed < preparationTimeout)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (!readinessResolved)
+        {
+            preparationTimeoutRoutine = null;
+            ReportFailureOnce(
+                $"Gameplay background video was not visually ready within {preparationTimeout:F0} seconds; using the fallback background.");
+            UseFallbackBackground();
+        }
+    }
+
+    private void UseFallbackBackground()
+    {
+        videoPlayer.Stop();
+        ResolveReadiness();
+    }
+
+    private void ResetReadiness()
+    {
+        StopPreparationTimeout();
+        readinessResolved = false;
+        failureReported = false;
+        IsReady = false;
+    }
+
+    private void ResolveReadiness()
+    {
+        if (readinessResolved)
+        {
+            return;
+        }
+
+        readinessResolved = true;
+        IsReady = true;
+        StopPreparationTimeout();
+        BackgroundReady?.Invoke();
+    }
+
+    private void ReportFailureOnce(string message)
+    {
+        if (failureReported)
+        {
+            return;
+        }
+
+        failureReported = true;
+        Debug.LogWarning(message, this);
+    }
+
+    private void StopPreparationTimeout()
+    {
+        if (preparationTimeoutRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(preparationTimeoutRoutine);
+        preparationTimeoutRoutine = null;
     }
 
     private void EnsureVideoPlayer()
@@ -106,6 +242,7 @@ public class DynamicBackgroundController : MonoBehaviour
         videoPlayer.playOnAwake = false;
         videoPlayer.isLooping = true;
         videoPlayer.waitForFirstFrame = true;
+        videoPlayer.sendFrameReadyEvents = true;
         videoPlayer.skipOnDrop = true;
         videoPlayer.renderMode = VideoRenderMode.CameraFarPlane;
         videoPlayer.aspectRatio = VideoAspectRatio.FitOutside;

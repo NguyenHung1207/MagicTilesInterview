@@ -35,6 +35,5 @@ public class JsonChartLoader : MonoBehaviour
 
         notes.Clear();
         notes.AddRange(chartData.notes);
-        Debug.Log($"Loaded {notes.Count} gameplay notes from JSON.", this);
     }
 }

@@ -13,6 +13,7 @@ public class SongConductor : MonoBehaviour
     private double pausedSongTime;
 
     public bool IsPaused => isSongPaused;
+    public bool HasStarted => isSongScheduled && !isSongStopped;
 
     public double SongTime
     {
@@ -60,18 +61,26 @@ public class SongConductor : MonoBehaviour
         isSongPaused = false;
         musicSource.UnPause();
     }
-    private void StartSong()
+
+    public bool StartSong()
     {
+        if (isSongScheduled)
+        {
+            return false;
+        }
+
         if (musicSource.clip == null)
         {
             Debug.LogError("SongConductor requires an AudioClip.", this);
-            return;
+            return false;
         }
 
         // Schedule slightly ahead so the audio system can prepare playback.
         songStartDspTime = AudioSettings.dspTime + startDelay;
         musicSource.PlayScheduled(songStartDspTime);
         isSongScheduled = true;
+        isSongStopped = false;
+        return true;
     }
 
     public void StopSong()
@@ -86,14 +95,13 @@ public class SongConductor : MonoBehaviour
         musicSource.Stop();
     }
 
-    void Start()
+    private void Awake()
     {
         if (musicSource == null)
         {
             Debug.LogError("SongConductor requires an AudioSource reference.", this);
-            return;
+            enabled = false;
         }
-        StartSong();
     }
 
     public bool IsSongFinished
