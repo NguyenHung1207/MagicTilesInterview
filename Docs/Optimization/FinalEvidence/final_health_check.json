@@ -1,0 +1,22 @@
+{
+    "unityVersion": "2022.3.62f2",
+    "passed": true,
+    "before": {
+        "scene": "Assets/Optimization/Scenes/OptimizeBefore.unity",
+        "passed": true,
+        "missingScripts": 0,
+        "prefabPath": "Assets/0_Mep/General/Prefabs/Gameplay/GameplayEffect/ParticleEffectUnOptimizeExport/ParticleEffectsUnoptimize.prefab",
+        "deterministicRainEmitters": 0,
+        "rainCombinedObjects": 0,
+        "rain4Objects": 2
+    },
+    "after": {
+        "scene": "Assets/Optimization/Scenes/OptimizeAfter.unity",
+        "passed": true,
+        "missingScripts": 0,
+        "prefabPath": "Assets/Optimization/Prefabs/ParticleEffectsOptimized.prefab",
+        "deterministicRainEmitters": 2,
+        "rainCombinedObjects": 2,
+        "rain4Objects": 0
+    }
+}

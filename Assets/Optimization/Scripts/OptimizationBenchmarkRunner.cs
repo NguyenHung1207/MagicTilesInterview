@@ -1,3 +1,4 @@
+using MagicTiles.Optimization;
 using UnityEngine;
 
 public enum BenchmarkVariant
@@ -23,6 +24,8 @@ public sealed class OptimizationBenchmarkRunner : MonoBehaviour
     private ParticleSystem[] perfectLevel1Systems;
     private ParticleSystem[] perfectLevel2Systems;
     private ParticleSystem[] perfectLevel3Systems;
+    private DeterministicRainEmitter perfectLevel2Rain;
+    private DeterministicRainEmitter perfectLevel3Rain;
     private int replayRequestedFrame = -1;
     private bool initialized;
 
@@ -48,6 +51,15 @@ public sealed class OptimizationBenchmarkRunner : MonoBehaviour
         perfectLevel1Systems = CacheHierarchyOrder(perfectLevel1);
         perfectLevel2Systems = CacheHierarchyOrder(perfectLevel2);
         perfectLevel3Systems = CacheHierarchyOrder(perfectLevel3);
+        perfectLevel2Rain = perfectLevel2.GetComponent<DeterministicRainEmitter>();
+        perfectLevel3Rain = perfectLevel3.GetComponent<DeterministicRainEmitter>();
+
+        if (perfectLevel2Rain == null || perfectLevel3Rain == null)
+        {
+            Debug.LogError("Optimization benchmark requires deterministic rain emitters on PL2 and PL3.", this);
+            enabled = false;
+            return;
+        }
         initialized = true;
     }
 
@@ -124,10 +136,21 @@ public sealed class OptimizationBenchmarkRunner : MonoBehaviour
         uint seed = baseRandomSeed;
         AssignSeeds(transitionSystems, ref seed);
         AssignSeeds(perfectLevel1Systems, ref seed);
-        AssignSeeds(perfectLevel2Systems, ref seed);
-        AssignSeeds(perfectLevel3Systems, ref seed);
+
+        uint pl2RightSeed;
+        uint pl2LeftSeed;
+        AssignSeedsWithRainPair(perfectLevel2Systems, perfectLevel2Rain, ref seed, out pl2RightSeed, out pl2LeftSeed);
+
+        uint pl3RightSeed;
+        uint pl3LeftSeed;
+        AssignSeedsWithRainPair(perfectLevel3Systems, perfectLevel3Rain, ref seed, out pl3RightSeed, out pl3LeftSeed);
 
         GetSelectedRoot().Play(true);
+
+        if (selectedVariant == BenchmarkVariant.PerfectLevel2)
+            perfectLevel2Rain.EmitDeterministicRain(pl2RightSeed, pl2LeftSeed);
+        else if (selectedVariant == BenchmarkVariant.PerfectLevel3)
+            perfectLevel3Rain.EmitDeterministicRain(pl3RightSeed, pl3LeftSeed);
     }
 
     private ParticleSystem GetSelectedRoot()
@@ -184,6 +207,36 @@ public sealed class OptimizationBenchmarkRunner : MonoBehaviour
             system.useAutoRandomSeed = false;
             system.randomSeed = seed;
             seed++;
+        }
+    }
+
+    private static void AssignSeedsWithRainPair(
+        ParticleSystem[] systems,
+        DeterministicRainEmitter emitter,
+        ref uint seed,
+        out uint rightSeed,
+        out uint leftSeed)
+    {
+        rightSeed = 0u;
+        leftSeed = 0u;
+
+        for (int index = 0; index < systems.Length; index++)
+        {
+            ParticleSystem system = systems[index];
+            system.useAutoRandomSeed = false;
+            system.randomSeed = seed;
+
+            if (system == emitter.RainSystem)
+            {
+                rightSeed = seed;
+                seed++;
+                leftSeed = seed;
+                seed++;
+            }
+            else
+            {
+                seed++;
+            }
         }
     }
 

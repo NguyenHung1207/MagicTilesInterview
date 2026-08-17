@@ -1,0 +1,39 @@
+{
+    "unityVersion": "2022.3.62f2",
+    "passed": true,
+    "fixedReplayCyclesPerVariant": 100,
+    "generalSeedPairsPerVariant": 32,
+    "pl2": {
+        "variant": "PerfectLevel2",
+        "passed": true,
+        "fixedReplayCycles": 100,
+        "generalSeedPairs": 32,
+        "recurringAllocatedBytesAcross100Calls": 0,
+        "particles": 4,
+        "leftParticles": 2,
+        "rightParticles": 2
+    },
+    "pl3": {
+        "variant": "PerfectLevel3",
+        "passed": true,
+        "fixedReplayCycles": 100,
+        "generalSeedPairs": 32,
+        "recurringAllocatedBytesAcross100Calls": 0,
+        "particles": 4,
+        "leftParticles": 2,
+        "rightParticles": 2
+    },
+    "scene": {
+        "passed": true,
+        "transitionReplayPassed": true,
+        "pl1ReplayPassed": true,
+        "pl2ReplayPassed": true,
+        "pl3ReplayPassed": true,
+        "missingScripts": 0,
+        "pl2RainSeed": 1355,
+        "pl2GlowSeed": 1357,
+        "pl3RootSeed": 1358,
+        "pl3RainSeed": 1365
+    },
+    "trailMinimumVertexDistance": 0.4000000059604645
+}

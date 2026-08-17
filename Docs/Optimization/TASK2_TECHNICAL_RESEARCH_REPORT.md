@@ -1,5 +1,9 @@
 # Task 2 Technical Research Report
 
+## Post-audit promotion update
+
+The provisional recommendation in this research snapshot was subsequently completed. Build C passed fixed-seed and 256-pair general-seed validation, its single `rainCombined` event was measured live at 1 Draw Call/16 vertices/24 indices/8 triangles, and the one-simulation/one-renderer architecture was promoted into `ParticleEffectsOptimized.prefab`. `ParticleSystemRendererConsolidator` and the temporary Build C runtime/test assets were then removed. `Docs/Optimization/OPTIMIZATION.md` is the authoritative final implementation report; the analysis below is retained as the historical reasoning that led to the promotion.
+
 ## Scope and evidence rules
 
 This report audits only the dedicated `task2/ui-vfx-optimization` branch. It does not use Task 1 gameplay, HUD, video-background, note-spawning, or other `main`-branch production systems as optimization evidence.

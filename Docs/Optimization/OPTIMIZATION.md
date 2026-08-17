@@ -1,223 +1,208 @@
 # Task 2 — UI/VFX Optimization
 
-## Objective
+## Objective and scope
 
-Profile the inherited particle-effect package, reduce measurable rendering cost without weakening the intended image, and document only changes supported by repeatable Unity Profiler, Frame Debugger, benchmark, and visual evidence.
+Optimize the imported UI/VFX package for a mobile-targeted project without changing the Task 1 game. The original source remains untouched:
 
-The imported source prefab remains unchanged. The final comparison uses:
+- Before: `Assets/Optimization/Scenes/OptimizeBefore.unity`
+- Original prefab: `Assets/0_Mep/General/Prefabs/Gameplay/GameplayEffect/ParticleEffectUnOptimizeExport/ParticleEffectsUnoptimize.prefab`
+- After: `Assets/Optimization/Scenes/OptimizeAfter.unity`
+- Final prefab: `Assets/Optimization/Prefabs/ParticleEffectsOptimized.prefab`
 
-- Before: `Assets/Optimization/Scenes/OptimizeBefore.unity` with `ParticleEffectsUnoptimize.prefab`.
-- After: `Assets/Optimization/Scenes/OptimizeAfter.unity` with `ParticleEffectsOptimized.prefab`.
+Unity 2022.3.62f2, Built-in Render Pipeline, a 1080 × 1920 comparison view, and deterministic seed 1337 were used. Editor measurements are development evidence only. Android frame time, GPU time, thermal behavior, and 60 FPS have not been measured.
 
-## Test Setup
-
-| Item | Configuration |
-| --- | --- |
-| Unity | 2022.3.62f2 |
-| Render pipeline | Built-in Render Pipeline |
-| Resolution | 1080 × 1920 |
-| Camera | Same orthographic camera in Before and After scenes |
-| Replay harness | `OptimizationBenchmarkRunner` |
-| Random seed | 1337 |
-| Primary workload | `PerfectLevel3` (PL3) |
-| Measurement tools | Unity Profiler and Frame Debugger in the Editor |
-
-The runner stops and clears all four effects, assigns deterministic seeds in a stable hierarchy order, and plays only the selected variant. The two scenes share the same benchmark configuration and differ in the particle prefab and corresponding root references.
-
-The captured Draw Call frame and captured geometry frame are intentionally separate samples. Particle trails change geometry over their lifetime, so the highest/comparable geometry sample does not necessarily occur on the selected Draw Call frame. The report never combines those counters as though they came from one frame.
-
-These are controlled Editor measurements. They are not Android-device performance or 60 FPS claims.
-
-## Before
-
-The initial four-variant rendering baseline was:
+## Before profiling evidence
 
 | Variant | Draw Calls | Batches | SetPass Calls |
-| --- | ---: | ---: | ---: |
+|---|---:|---:|---:|
 | Transition | 6 | 6 | 6 |
-| PerfectLevel1 (PL1) | 7 | 7 | 7 |
-| PerfectLevel2 (PL2) | 9 | 8 | 8 |
-| PerfectLevel3 (PL3) | 9 | 8 | 7 |
+| PerfectLevel1 | 7 | 7 | 7 |
+| PerfectLevel2 | 9 | 8 | 8 |
+| PerfectLevel3 | 9 | 8 | 7 |
 
-PL3 was the primary workload because it tied for the highest Draw Call count and produced the heaviest observed trail geometry.
+PL3 tied for the highest Draw Call count and produced the heaviest observed trail geometry.
 
-![Before — PL3 Draw Calls](FinalEvidence/before_pl3_draw_calls.png)
+![Before PL3 draw state](FinalEvidence/before_pl3_draw_calls.png)
 
-The selected baseline Profiler frame shows **9 Draw Calls, 8 Batches, and 7 SetPass Calls**. Its 320 triangles and 374 vertices belong only to that selected frame.
+The selected baseline draw frame measured 9 Draw Calls, 8 Batches, and 7 SetPass Calls. A separate peak/comparable geometry frame measured 410 triangles and 460 vertices:
 
-![Before — PL3 geometry](FinalEvidence/before_pl3_geometry.png)
+![Before PL3 geometry](FinalEvidence/before_pl3_geometry.png)
 
-The dedicated baseline geometry frame shows **410 triangles and 460 vertices**. These are the authoritative geometry values used in the final PL3 comparison.
+The two mirrored rain renderers generated two draw events while rendering four quads total:
 
-## Issues Found
+![Before PL3 rain](FinalEvidence/before_pl3_rain_frame_debugger.png)
 
-- **Dense trail tessellation:** the `lines` trails generated more vertices than were visually necessary.
-- **Two compatible rain renderer submissions:** PL2 and PL3 each used mirrored `rain3` and `rain4` simulations whose output could be submitted through one renderer while preserving both sides.
-- **Avoidable particle-read work:** the first consolidation implementation continued calling `GetParticles` after its one-shot transfer was complete.
-- **Unsafe trail consolidation candidate:** the Transition `zap1` and `zap2` systems looked structurally similar, but joining their independent trail histories produced invalid connecting segments.
-- **Material sharing was insufficient:** mask normalization and shared material/atlas experiments did not reduce the measured ParticleSystem submissions.
+**MEASURED:** 2 rain Draw Calls, 16 vertices, 24 indices, 8 triangles.
 
-## Changes Made
+## Issues found
 
-### Trail Geometry Optimization
+- PL1/PL2/PL3 `lines` trails were tessellated more densely than their visual quality required.
+- PL2/PL3 used separate compatible `rain3` and `rain4` renderers for four small additive particles.
+- The first rain consolidation reduced a submission but retained duplicate simulation and introduced particle-copy complexity.
+- Transition `zap1`/`zap2` appeared mergeable, but their independent trail histories produced invalid connecting geometry when combined.
+- Material sharing/atlas and mask-normalization experiments did not reduce measured submissions.
 
-For the `lines` trail in PL1, PL2, and PL3:
+## Optimization history
+
+### Original rain
 
 ```text
-Trails > Minimum Vertex Distance: 0.2 -> 0.4
+rain3: simulation + renderer
+rain4: simulation + renderer
 ```
 
-A larger minimum distance makes Unity add trail vertices less frequently, reducing trail geometry without changing the emitter, material, timing, or lifetime. Fixed-phase visual comparisons and repeated deterministic playback found `0.4` to be an acceptable visual/performance compromise; pushing this setting too high would make the trail visibly coarse.
+Result: two measured rain Draw Calls.
 
-### Rain Renderer Consolidation
+### First rain optimization — Build B
 
-PL2 and PL3 contain mirrored `rain3` and `rain4` systems. Both simulations remain active with their original transforms, shape rotations, timing, modules, and deterministic seeds. In the optimized prefab, the `rain4` renderer is disabled and `ParticleSystemRendererConsolidator` transfers its emitted particles into `rain3` in the correct simulation space.
+Build B retained both simulations, disabled the `rain4` renderer, and used `ParticleSystemRendererConsolidator` to copy source particles into `rain3`.
 
-This preserves both mirrored sides while removing one compatible renderer submission. It is a targeted optimization, not a claim that arbitrary ParticleSystems can be merged safely.
+Result: rain Draw Calls reduced from 2 to 1, with the same 16 vertices/24 indices. Batches and SetPass Calls did not improve.
 
-![Before — PL3 rain renderer group](FinalEvidence/before_pl3_rain_frame_debugger.png)
+![Historical Build B rain event](FinalEvidence/build_b_pl3_rain_frame_debugger.png)
 
-The baseline Frame Debugger event shows the rain group using **2 Draw Calls, 16 vertices, and 24 indices**.
+Further audit found that Build B:
 
-![After — PL3 consolidated rain renderer](FinalEvidence/after_pl3_rain_frame_debugger.png)
+- still ran both native ParticleSystem simulations;
+- held six simulated records for four visible particles after transfer;
+- called source/target `GetParticles` and target `SetParticles`;
+- depended on one-shot transfer and replay lifecycle assumptions;
+- allocated arrays with capacities of 2,000 target particles, 1,000 source particles, and 1,000 seeds per helper;
+- used a **CALCULATED** 400,000-byte array-element payload per helper, or 800,000 bytes across PL2 and PL3. Array object/alignment overhead is excluded.
 
-The optimized equivalent shows **1 Draw Call, 16 vertices, and 24 indices**. The Frame Debugger `Camera.Render` tree count is not used as the overall Profiler Draw Call result.
+Build B worked and was visually correct, but it spent architecture, native-to-managed copying, and memory to save one very small draw.
 
-### Runtime Particle Transfer / Allocation Cleanup
+### Follow-up research — Build C
 
-`ParticleSystemRendererConsolidator`:
+A simpler architecture was tested independently before promotion:
 
-- caches its two serialized `ParticleSystem` references;
-- allocates fixed particle and seed buffers once in `Awake`;
-- uses a `transferComplete` guard for the one-shot transfer;
-- performs no LINQ, hierarchy search, `Instantiate`, or `Destroy` in its hot path;
-- resets transfer state when the source stops so deterministic replay remains valid.
+```text
+rainCombined: one simulation + one renderer
+DeterministicRainEmitter: four replay-time EmitParams calls
+```
 
-The final helper keeps GPU submission metrics and CPU/API-call measurements conceptually separate.
+The emitter produces exactly two particles per side. Fixed benchmark seeds use compatibility samples recovered from the original Unity Shape output. Other seeds use an allocation-free deterministic value-type PRNG within the original position, arc, speed, lifetime, size, and rotation domains.
 
-## Results
+Validation before promotion included:
 
-### PL1
+- PL2 and PL3: 100/100 fixed-seed deterministic replays each;
+- 256 additional non-preset seed pairs and 1,024 particle samples;
+- exact four particles and 2/2 side balance;
+- no center leakage, stale state, accumulation, non-finite values, or exceptions;
+- zero recurring allocation in warmed emitter tests;
+- seven of eight fixed-phase A/C captures pixel-identical, with a negligible five-RGB-byte difference in the remaining PL2 frame;
+- comparable general-seed coverage, luminance, centroid, and footprint.
 
-PL1 retains the trail setting change only; it has no mirrored rain consolidation.
+### Final rain optimization — promoted Build C
 
-| Metric | Before | After | Change | Source |
-| --- | ---: | ---: | ---: | --- |
-| Draw Calls | 7 | 7 | 0.0% | Deterministic Editor benchmark |
-| Batches | 7 | 7 | 0.0% | Deterministic Editor benchmark |
-| SetPass Calls | 7 | 7 | 0.0% | Deterministic Editor benchmark |
-| Triangles | 126 | 86 | **31.7% reduction** | Controlled trail comparison window |
-| Vertices | 164 | 124 | **24.4% reduction** | Controlled trail comparison window |
+The final PL2 and PL3 prefab hierarchy now contains `rainCombined` only:
 
-No PL1 Draw Call reduction is claimed.
+- one ParticleSystem simulation;
+- one enabled billboard renderer;
+- four simulated and visible particles;
+- `maxParticles = 8`;
+- no hidden source system or `rain4`;
+- no `GetParticles`, `SetParticles`, particle-copy arrays, or `LateUpdate` polling;
+- retained Size over Lifetime, Rotation over Lifetime, Color over Lifetime, and Limit Velocity;
+- retained `triangle_ 1.mat`, `Mobile/Particles/Additive`, SrcAlpha/One, ZWrite Off.
 
-### PL2
+**MEASURED in the supplied live Frame Debugger capture:** one `Draw Dynamic rainCombined` event, 1 Draw Call, 16 vertices, 24 indices, and 8 triangles.
 
-PL2 retains both the trail setting and mirrored-rain renderer consolidation.
+The final `OptimizationBenchmarkRunner` explicitly emits rain after deterministic hierarchy seed assignment. Removing `rain4` does not shift unrelated sequences: PL2 rain remains 1355/1356, PL2 glow remains 1357, PL3 root remains 1358, and PL3 rain remains 1365/1366.
 
-| Metric | Before | After | Change | Source |
-| --- | ---: | ---: | ---: | --- |
-| Draw Calls | 9 | 8 | **11.1% reduction** | Deterministic Editor benchmark |
-| Batches | 8 | 8 | 0.0% | Deterministic Editor benchmark |
-| SetPass Calls | 8 | 8 | 0.0% | Deterministic Editor benchmark |
-| Triangles | 196 | 156 | **20.4% reduction** | Controlled trail comparison window |
-| Vertices | 240 | 200 | **16.7% reduction** | Controlled trail comparison window |
+## Trail geometry optimization
 
-### PL3
+PL1, PL2, and PL3 `lines` retain:
 
-PL3 is the heaviest/final comparison and retains both optimizations.
+```text
+Trails > Minimum Vertex Distance: 0.2 → 0.4
+```
 
-| Metric | Before | After | Change | Source |
-| --- | ---: | ---: | ---: | --- |
-| Draw Calls | 9 | 8 | **11.1% reduction** | Final Profiler Draw Call screenshots |
-| Batches | 8 | 8 | 0.0% | Final Profiler Draw Call screenshots |
-| SetPass Calls | 7 | 7 | 0.0% | Final Profiler Draw Call screenshots |
-| Triangles | 410 | 224 | **45.4% reduction** | Final dedicated geometry screenshots |
-| Vertices | 460 | 274 | **40.4% reduction** | Final dedicated geometry screenshots |
+This reduces trail tessellation without runtime code. Values above 0.4 were not promoted because coarser segmentation requires another visual-quality gate.
 
-## Final Before / After
+| Variant | Before triangles | After triangles | Before vertices | After vertices |
+|---|---:|---:|---:|---:|
+| PL1 | 126 | 86 | 164 | 124 |
+| PL2 | 196 | 156 | 240 | 200 |
+| PL3 | 410 | 224 | 460 | 274 |
 
-| Phase | Draw Calls | Triangles | Vertices | Main retained change |
-| --- | ---: | ---: | ---: | --- |
-| PL1 Before | 7 | 126 | 164 | Baseline |
-| PL1 After | 7 | 86 | 124 | Trail tessellation |
-| PL2 Before | 9 | 196 | 240 | Baseline |
-| PL2 After | 8 | 156 | 200 | Rain consolidation + trail tessellation |
-| PL3 Before | 9 | 410 | 460 | Baseline; metrics sampled in separate final evidence frames |
-| PL3 After | 8 | 224 | 274 | Rain consolidation + trail tessellation; metrics sampled in separate final evidence frames |
+The PL3 reductions are 45.4% triangles and 40.4% vertices in the controlled comparison frames.
 
-![After — PL3 Draw Calls](FinalEvidence/after_pl3_draw_calls.png)
+## Final validation from promoted assets
 
-The final Draw Call frame shows **8 Draw Calls, 8 Batches, and 7 SetPass Calls**. Its 216 triangles and 270 vertices are specific to that selected frame and are not substituted into the geometry comparison.
+The final prefab and `OptimizeAfter.unity` were validated again after promotion, rather than relying only on experiment assets.
 
-![After — PL3 geometry](FinalEvidence/after_pl3_geometry.png)
+| Check | PL2 | PL3 |
+|---|---:|---:|
+| Fixed-seed replay cycles | 100/100 PASS | 100/100 PASS |
+| Additional promoted-final seed pairs | 32 PASS | 32 PASS |
+| Rain particles | 4 | 4 |
+| Left/right | 2/2 | 2/2 |
+| Recurring allocation over 100 warmed calls | 0 bytes | 0 bytes |
+| Center leakage / stale / accumulation / exception | None | None |
 
-The dedicated final geometry frame shows **224 triangles and 274 vertices**.
+Transition, PL1, PL2, and PL3 all replayed through the promoted final runner. The final scene contained zero missing MonoBehaviours, all three trail MVD values remained 0.4, and the seed slots above were preserved. Machine-readable evidence is in `FinalEvidence/final_promotion_validation.json`.
 
-The final screenshot-supported PL3 result is therefore:
+Promoted-final rain-only visual captures:
 
-- Draw Calls: **9 -> 8** (**11.1% reduction**).
-- Triangles: **410 -> 224** (**45.4% reduction**).
-- Vertices: **460 -> 274** (**40.4% reduction**).
+- `FinalEvidence/after_pl2_rainCombined_0.20s.png`
+- `FinalEvidence/after_pl3_rainCombined_0.20s.png`
 
-## GetParticles and GC Validation
+## CPU and memory evidence
 
-The following values describe CPU/API work inside the consolidation helper. **They are not Draw Calls.**
+The pre-promotion Editor microbenchmark compared 10,000 warmed calls:
 
-Across five deterministic replays:
+| Operation | Result | Evidence class |
+|---|---:|---|
+| Build B full transfer | 4.165 µs average | EDITOR MICROBENCHMARK |
+| Build C clear + four emits | 0.873 µs average | EDITOR MICROBENCHMARK |
+| Build B completed-transfer polling | 0.052 µs average | EDITOR MICROBENCHMARK; near timer noise |
+| Build C recurring allocation | 0 bytes | MEASURED warmed Editor calls |
+| Build B helper payload, PL2 + PL3 | 800,000 bytes | CALCULATED from capacities and 132-byte Particle struct |
+| Build C equivalent copy-buffer payload | 0 bytes | VERIFIED BY CODE |
 
-| Variant | Source `GetParticles` calls before guard | After guard | Reduction |
-| --- | ---: | ---: | ---: |
-| PL2 | 235 | 5 | 97.9% |
-| PL3 | 234 | 5 | 97.9% |
+These microsecond results are too small to claim an FPS improvement and are not Unity Profiler marker or Android timings. `ParticleSystem.Update` has not been isolated on device.
 
-The same validation recorded five target reads and five target writes for each variant: one completed transfer per replay. Ten rapid replays passed without stale particles, duplicate transfers, accumulation, transform drift, or a missing mirrored side.
+## Final rendering results
 
-Unity Editor profiling attributed **0 B recurring managed allocation** to the tested steady-state and transfer hot path. This wording does not include the intentional initialization arrays allocated once in `Awake`, and it is not a general “zero allocations” claim for the scene or player build.
+Fresh live Game View totals from the promoted `OptimizeAfter.unity` scene were:
 
-## Rejected Optimization and Trade-offs
+| Variant | Draw Calls | Batches | SetPass Calls |
+|---|---:|---:|---:|
+| PL2 | 8 | 8 | 8 |
+| PL3 | 8 | 8 | 7 |
 
-### Transition Zap Consolidation — Rejected
+These promoted-final totals match the historical Build B totals. The automated run recorded PL2 at 140 vertices/94 triangles and PL3 at 252 vertices/198 triangles in those particular live frames; trail geometry is phase-dependent, so the dedicated historical geometry comparison remains the controlled peak/comparable reference. The final rain event itself was measured live as stated above. Machine-readable promoted-final counters are in `FinalEvidence/final_live_render_validation.json`.
 
-Combining `zap1` and `zap2` reduced Transition from 6 to 4 Draw Calls, but it joined independent trail histories with incorrect horizontal links. The change was reverted. The final optimized prefab keeps Transition at 6 Draw Calls and contains no zap consolidator.
+The retained historical after frames are useful for the trail and whole-effect comparison:
 
-### Other Rejected Experiments
+![Historical after PL3 draw state](FinalEvidence/after_pl3_draw_calls.png)
 
-- Mask-interaction normalization did not change Draw Calls, Batches, or SetPass Calls.
-- A shared material/atlas prototype did not reduce measured submissions and added configuration complexity.
-- Disabling `init`, `glow`, or `outline_line` reduced a submission but visibly weakened impact, color, or silhouette.
+![Historical after PL3 geometry](FinalEvidence/after_pl3_geometry.png)
 
-These experiments reinforced the acceptance rule: a lower counter is not a valid optimization when the visual result is wrong or the added complexity has no measured benefit.
+## Rejected/reverted experiments
 
-## Validation
+- Transition zap consolidation reduced Draw Calls but connected independent trail histories; rejected and reverted.
+- Shared material/atlas and mask normalization did not reduce measured submissions; rejected.
+- Disabling `init`, `glow`, or `outline_line` reduced a draw but visibly weakened the effect; rejected.
+- Build B rain consolidation was superseded after its simulation, copy, memory, and lifecycle costs were quantified.
 
-- `OptimizeBefore.unity` references the untouched imported prefab; `OptimizeAfter.unity` references the optimized duplicate.
-- Both scenes use the same camera, resolution context, runner configuration, selected PL3 variant, and random seed.
-- The benchmark runner caches variant hierarchies and assigns deterministic seeds before playback.
-- The optimized prefab serializes Minimum Vertex Distance `0.4` for PL1, PL2, and PL3 `lines` trails.
-- Only PL2 and PL3 contain the retained rain consolidation components.
-- All six final evidence files below exist and match the values stated in this report.
-- Android-device profiling remains pending; no Android CPU, GPU, or frame-rate claim is made.
+## Evidence classification
 
-### Final Evidence Inventory
-
-| File | State / source | Visible values | Supported claim |
-| --- | --- | --- | --- |
-| `FinalEvidence/before_pl3_draw_calls.png` | Before / Unity Profiler | 9 Draw Calls, 8 Batches, 7 SetPass; 320 triangles, 374 vertices in selected frame | Overall PL3 baseline Draw Calls |
-| `FinalEvidence/before_pl3_geometry.png` | Before / Unity Profiler | 410 triangles, 460 vertices; selected frame also shows 8 Draw Calls, 7 Batches, 7 SetPass | Dedicated PL3 baseline geometry |
-| `FinalEvidence/before_pl3_rain_frame_debugger.png` | Before / Frame Debugger | 2 Draw Calls, 16 vertices, 24 indices | Baseline rain renderer group |
-| `FinalEvidence/after_pl3_draw_calls.png` | After / Unity Profiler | 8 Draw Calls, 8 Batches, 7 SetPass; 216 triangles, 270 vertices in selected frame | Final PL3 Draw Calls |
-| `FinalEvidence/after_pl3_geometry.png` | After / Unity Profiler | 224 triangles, 274 vertices; selected frame also shows 7 Draw Calls, 7 Batches, 7 SetPass | Dedicated PL3 final geometry |
-| `FinalEvidence/after_pl3_rain_frame_debugger.png` | After / Frame Debugger | 1 Draw Call, 16 vertices, 24 indices | Consolidated rain renderer group |
+- **MEASURED:** fixed/general replay outcomes, emitted counts, warmed allocation, original/final rain Frame Debugger event values supplied from the live capture, and historical Editor counters shown in screenshots.
+- **CALCULATED:** Build B's 800,000-byte array-element payload.
+- **EDITOR MICROBENCHMARK:** Build B transfer and Build C emission timings.
+- **EXPECTED:** none of the supplied live rain event or whole-variant counter values. The automated Frame Debugger event lookup did not export a renderer event, so the repository records the separately supplied live rain capture rather than treating automated zeros as measurements.
+- **ANDROID NOT MEASURED:** CPU/GPU frame time, render-thread cost, memory snapshots, percentiles, thermal behavior, and 60 FPS.
 
 ## Learnings
 
-- Draw Calls, Batches, SetPass Calls, geometry, CPU API calls, and managed allocations are separate metrics; improving one does not imply that all improved.
-- Frame Debugger is essential for mapping aggregate Profiler counters to the renderer submissions that caused them.
-- Trail-heavy effects can benefit substantially from topology tuning even when Draw Calls do not change.
-- Renderer consolidation is safe only when simulation, renderer compatibility, and visual equivalence are validated; independent trail histories are a concrete counterexample.
-- Profiling should drive optimization decisions, and visual correctness must be checked after every numerical improvement.
+- Draw Calls, Batches, SetPass Calls, geometry, simulation CPU, allocations, and memory are independent metrics.
+- Improving a profiler counter is not enough when the implementation adds avoidable simulation, copying, memory, and lifecycle risk.
+- The first correct optimization can still be superseded by a simpler architecture after deeper validation.
+- Trail topology tuning produced a larger absolute workload reduction than removing one four-quad submission.
+- Deterministic replay and fixed-phase images made architectural A/B/C comparisons trustworthy without treating Editor evidence as mobile proof.
 
-## AI Usage
+## AI usage
 
-AI assistance was used to review profiler findings, organize optimization hypotheses, inspect serialized Unity configuration, review the consolidation code, recalculate metrics, and audit this report. Final changes and claims were accepted only after validation against Unity Profiler, Frame Debugger, deterministic replay, serialized assets, and manual visual evidence.
+AI assistance was used to inspect serialized assets, reconstruct experiments, design and validate Build C, review metrics, and update documentation. Claims were retained only when supported by serialized state, deterministic validation, supplied Unity captures, or clearly labeled calculations/microbenchmarks.

@@ -1,0 +1,22 @@
+{
+    "unityVersion": "2022.3.62f2",
+    "wholeVariantCountersMeasured": true,
+    "automatedRainFrameDebuggerCaptured": false,
+    "rainFrameDebuggerMeasurementSource": "Supplied live capture; see after_rainCombined_frame_debugger_measurement.md",
+    "pl2": {
+        "variant": "PerfectLevel2",
+        "wholeDrawCalls": 8,
+        "wholeBatches": 8,
+        "wholeSetPassCalls": 8,
+        "wholeVertices": 140,
+        "wholeTriangles": 94
+    },
+    "pl3": {
+        "variant": "PerfectLevel3",
+        "wholeDrawCalls": 8,
+        "wholeBatches": 8,
+        "wholeSetPassCalls": 7,
+        "wholeVertices": 252,
+        "wholeTriangles": 198
+    }
+}
