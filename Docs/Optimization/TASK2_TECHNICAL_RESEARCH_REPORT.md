@@ -35,8 +35,8 @@ Task 2
 │   └── Assets/Optimization/Scenes/OptimizeAfter.unity
 ├── Benchmark runner
 │   └── Assets/Optimization/Scripts/OptimizationBenchmarkRunner.cs
-├── Optimization helper
-│   └── Assets/Optimization/Scripts/ParticleSystemRendererConsolidator.cs
+├── Deterministic rain emitter
+│   └── Assets/Optimization/Scripts/DeterministicRainEmitter.cs
 ├── Final evidence
 │   └── Docs/Optimization/FinalEvidence/ (6 PNG files)
 └── Documentation
@@ -53,7 +53,7 @@ Task 2
 - Optimized prefab: `Assets/Optimization/Prefabs/ParticleEffectsOptimized.prefab`
 - After scene: `Assets/Optimization/Scenes/OptimizeAfter.unity`
 - Benchmark runner: `Assets/Optimization/Scripts/OptimizationBenchmarkRunner.cs`
-- Consolidator: `Assets/Optimization/Scripts/ParticleSystemRendererConsolidator.cs`
+- Deterministic rain emitter: `Assets/Optimization/Scripts/DeterministicRainEmitter.cs`
 - Final evidence: `Docs/Optimization/FinalEvidence/`
 - Existing final report: `Docs/Optimization/OPTIMIZATION.md`
 
@@ -74,22 +74,21 @@ Git history shows earlier `Before`, `After`, `DrawCall`, and `Experiments` evide
 
 ## 2. TASK2_CURRENT_FINAL_STATE
 
-The serialized comparison between the imported and optimized prefabs is precise. Apart from two added consolidator components, the only ParticleSystem/renderer differences are:
+The serialized comparison between the imported and optimized prefabs is precise. The original prefab contains 30 ParticleSystems; the final optimized prefab contains 28. The final changes are:
 
 | Hierarchy | Property | Before | Final After |
 |---|---|---:|---:|
 | `PerfectLevel1/lines` | `TrailModule.minVertexDistance` | 0.2 | 0.4 |
 | `PerfectLevel2/lines` | `TrailModule.minVertexDistance` | 0.2 | 0.4 |
 | `PerfectLevel3/lines` | `TrailModule.minVertexDistance` | 0.2 | 0.4 |
-| `PerfectLevel2/rain4` | Renderer enabled | Yes | No |
-| `PerfectLevel3/rain4` | Renderer enabled | Yes | No |
+| `PerfectLevel2/rainCombined` | Final rain simulation/renderer | Two rain systems before | One system; serialized emission disabled and scripted four-particle replay |
+| `PerfectLevel3/rainCombined` | Final rain simulation/renderer | Two rain systems before | One system; serialized emission disabled and scripted four-particle replay |
 
-Consolidators are attached to the PL2 and PL3 root systems:
+`rain3`, `rain4`, and `ParticleSystemRendererConsolidator` are not part of the final optimized prefab. `DeterministicRainEmitter` is attached to the PL2 and PL3 roots and emits exactly two particles per side into `rainCombined` during deterministic replay.
 
-- PL2 target `rain3`, source `rain4`.
-- PL3 target `rain3`, source `rain4`.
+The final rain architecture has one ParticleSystem and one enabled renderer per PL2/PL3 branch. The current final prefab has no particle-copy arrays or `GetParticles`/`SetParticles` path.
 
-Every other normalized ParticleSystem and ParticleSystemRenderer value matches the imported prefab.
+Apart from the documented trail and rain architecture changes, normalized ParticleSystem and ParticleSystemRenderer values match the imported prefab. `MEASURED` final replay and live Frame Debugger evidence are recorded in `Docs/Optimization/FinalEvidence/` and `OPTIMIZATION.md`.
 
 ### Final measured results
 
@@ -129,8 +128,8 @@ Limitations:
 |---|---|---|---|---|---|
 | **FINAL** | PL3 trail MVD | `PerfectLevel3/lines` trail was the largest geometry contributor | MVD 0.2 -> 0.3 (intermediate) -> 0.4 | Final evidence 410/460 -> 224/274; draw state unchanged | 0.4 retained as acceptable visual/geometry compromise |
 | **FINAL** | PL1/PL2 MVD generalization | Same `lines` trail structure might benefit | MVD 0.2 -> 0.4 | PL1 126/164 -> 86/124; PL2 196/240 -> 156/200 | Fixed-phase review reportedly acceptable |
-| **FINAL** | Mirrored rain renderer consolidation | PL2/PL3 rain3 and rain4 used compatible material/modules but two renderers | Disable rain4 renderer; copy its particles into rain3 | Rain group 2 -> 1 Draw Call; variant 9 -> 8; geometry preserved; Batches/SetPass unchanged | Both mirrored sides reportedly preserved |
-| **FINAL** | Transfer-complete guard | Initial helper called source GetParticles on most frames | Return after first successful transfer; reset on observed source stop | Five replays: 235/234 source reads -> 5/5 | Retained; removes self-introduced polling work |
+| **FINAL** | Promoted one-system rain architecture | PL2/PL3 originally used two compatible rain simulations/renderers | Replace each pair with `rainCombined`; emit four deterministic particles through `DeterministicRainEmitter` | Supplied live Frame Debugger: rain 2 -> 1 Draw Call; 16 vertices/24 indices/8 triangles preserved; final replay passed | Promoted after deterministic validation; no Android GPU result |
+| **HISTORICAL / SUPERSEDED** | Build B transfer-complete guard | Build B helper called source `GetParticles` repeatedly | Return after first successful transfer; reset on observed source stop | Historical five-replay source-read reduction: 235/234 -> 5/5 | Superseded with Build B; not part of final production architecture |
 | **REJECTED/REVERTED** | Mask normalization | `lines` mask interaction might break batching | Visible Outside Mask -> No Masking | 9/8/7 remained 9/8/7 | No benefit; reverted |
 | **REJECTED/REVERTED** | Atlas/shared material | `outline_circle`, rain3, rain4 looked renderer-compatible | Atlas two textures, normalize mask, enable texture-sheet sprite path, share additive material | Draw Calls/Batches/SetPass and geometry unchanged; outline remained separate | Added complexity; all prototype assets/overrides removed |
 | **REJECTED/REVERTED** | Disable `init` | Delete one renderer submission | Disable only init renderer | Counter reduced by one submission | Opening impact visibly weakened; reverted |
@@ -145,7 +144,9 @@ The final report supersedes earlier intermediate geometry peaks such as 424/472 
 
 ## 4. TASK2_PARTICLE_SYSTEM_AUDIT
 
-There are 30 ParticleSystems in both prefabs. Common settings unless noted:
+The original prefab has 30 ParticleSystems; the final optimized prefab has 28.
+The two removed systems are the PL2/PL3 `rain4` systems. Common settings for
+the retained systems unless noted:
 
 - Non-looping; Play On Awake off; scaled time.
 - Local simulation space, Hierarchy scaling, Automatic culling.
@@ -188,8 +189,7 @@ These already-disabled modules are not optimization opportunities.
 | `PL2/outline_circle` | Burst 1 | 0.5 / 0 | 1000 | Shape, Size, Color | M2 |
 | `PL2/outline_line` | Burst 1 | 0.5 / 0 | 1000 | Shape, Size, Color | M3 |
 | `PL2/lines` | Burst 4 | 0.7 / 50 | 1000 | Shape, Size, Limit Velocity, Trails | M1 + M2 |
-| `PL2/rain3` | Burst 2; rate 0.1/s | 0.4-0.6 / 50-100 | 1000 | Shape, Size, Rotation, Color, Limit Velocity | M1 enabled |
-| `PL2/rain4` | Same | Same | 1000 | Same | M1 renderer disabled |
+| `PL2/rainCombined` | Scripted four-particle replay; module disabled | 0.4-0.6 / 50-100 | 8 | Shape, Size, Rotation, Color, Limit Velocity | M1 enabled |
 | `PL2/triangle` | Burst 7 | 0.3-1 / 50-100 | 30 | Shape, Rotation, Color, Texture Sheet, Limit Velocity | MX |
 | `PerfectLevel3` root | None | - | 1000 | None | Disabled |
 | `PL3/glow` | Burst 1 | 1 / 0 | 1 | Shape, Size, Color, Limit Velocity | M5 |
@@ -197,8 +197,7 @@ These already-disabled modules are not optimization opportunities.
 | `PL3/outline_circle` | Burst 1 | 0.5 / 0 | 1000 | Shape, Size, Color | M2 |
 | `PL3/outline_line` | Burst 1 | 0.5 / 0 | 1000 | Shape, Size, Color | M3 |
 | `PL3/lines` | Burst 6 | 0.7 / 30-50 | 1000 | Shape, Size, Limit Velocity, Trails | M1 + M1 |
-| `PL3/rain3` | Burst 2; rate 0.1/s | 0.4-0.6 / 50-100 | 1000 | Shape, Size, Rotation, Color, Limit Velocity | M1 enabled |
-| `PL3/rain4` | Same | Same | 1000 | Same | M1 renderer disabled |
+| `PL3/rainCombined` | Scripted four-particle replay; module disabled | 0.4-0.6 / 50-100 | 8 | Shape, Size, Rotation, Color, Limit Velocity | M1 enabled |
 | `PL3/triangle` | Burst 7 | 0.3-1 / 50-150 | 30 | Shape, Rotation, Color, Texture Sheet, Limit Velocity | MX |
 
 ### Module assessment
@@ -221,11 +220,14 @@ These already-disabled modules are not optimization opportunities.
 | `outline_line` | M3 / Standard Unlit | Different texture/shader | No |
 | `lines` particle quads | M1 / Mobile Additive | Own dynamic billboard renderer | Can reuse pass, not necessarily draw |
 | `lines` trail | M1 / Mobile Additive | Trail topology and generated trail streams | Separate from billboard geometry |
-| `rain3` | M1 / Mobile Additive | Own dynamic renderer and different mask state | Current script combines rain only |
+| `rainCombined` | M1 / Mobile Additive | Own dynamic renderer and scripted replay | Final single-system rain renderer |
 | `triangle` | MX / Mobile Additive | Texture-sheet UVs, unique texture/order 11 | No |
 | `init` | E / Standard Unlit | Unique texture/shader/order 11 | No |
 
-Before adds `rain4` as the ninth draw. The rain Frame Debugger evidence proves 2 draws/16 vertices/24 indices before and 1 draw with unchanged geometry after.
+Before adds the second rain renderer as the ninth draw. The supplied live rain
+Frame Debugger evidence proves 2 draws/16 vertices/24 indices before and 1 draw
+with unchanged geometry after. The final architecture also removes the
+duplicate rain simulation; this is separate from the Draw Call result.
 
 ### Draw Calls versus Batches versus SetPass
 
@@ -238,7 +240,10 @@ PL3 Before is 9 Draw Calls, 8 Batches, 7 SetPass; After is 8/8/7.
 - Identical material does not merge billboard and trail topology or different renderer-generated buffers.
 - Transparent sort order, mask interaction, texture, shader, topology, and vertex layout are batch constraints.
 
-The consolidation therefore reduces submission count only. It does not reduce particle simulations, geometry, SetPass, or measured batches.
+The final rain change reduces submission count and duplicate rain simulation.
+The measured rain geometry remains unchanged, and the final whole-variant
+PL2/PL3 Batches and SetPass counters remain phase-dependent control metrics;
+the evidence does not establish a mobile frame-time improvement.
 
 ## 6. TASK2_TRAIL_ANALYSIS
 
@@ -261,6 +266,8 @@ Transition zap consolidation should not be repeated without a new topology desig
 ## 7. TASK2_OVERDRAW_ANALYSIS
 
 Overdraw is plausible, not measured. All used materials are transparent additive; overlapping pixels execute fragment shading repeatedly even where draw count is small.
+All candidate impact/confidence values below are research hypotheses. They are
+not measured GPU, fill-rate, or Android results unless explicitly marked.
 
 | Candidate | Exact evidence | Impact / confidence | Tool and controlled experiment | Visual risk |
 |---|---|---|---|---|
@@ -291,7 +298,11 @@ Recommended tools: Unity Overdraw view, GPU Profiler where supported, RenderDoc,
 
 For all used Standard Unlit materials, soft particles, distortion, lighting, emission, and camera fading are disabled; GRABPASS is disabled. Mobile Additive is already a minimal one-texture additive shader. The captured Frame Debugger event uses pass 0 with SrcAlpha/One, ZWrite Off, ZTest LessEqual, and Cull Off.
 
-Material/pass sharing does not imply one draw. PL3 lines main, lines trail, and rain3 share M1 but retain separate topology/renderer state. The atlas experiment failed because texture normalization did not remove renderer, topology, masking, stream, and transparent-order boundaries.
+Material/pass sharing does not imply one draw. PL3 lines main, lines trail, and
+`rainCombined` use compatible additive materials but retain separate
+topology/renderer state. The atlas experiment failed because texture
+normalization did not remove renderer, topology, masking, stream, and
+transparent-order boundaries.
 
 A minimal custom shader should be tested only after Android GPU evidence shows meaningful shader/fragment cost. Replacing already-cheap Mobile Additive shaders without that evidence is not justified. A one-texture additive replacement for the four Standard Unlit materials is technically possible but expected to have low absolute benefit at this screen coverage.
 
@@ -344,15 +355,19 @@ Benchmark limitations remain: no warm-up, sample window, percentile output, phas
 | PL1/PL2 lines | 1000 | 4 | 6-8 |
 | PL3 lines | 1000 | 6 | 8-10 |
 | triangle | 30 | 7 | 10 |
-| Individual rain source | 1000 | 2 burst particles | 3-4 |
-| Consolidated rain target | 1000 | 4 total after copying | 5-6 |
+| `rainCombined` | 8 | 4 scripted particles | unchanged |
 | Each zap | 1000 | 20 | 24-32 |
 
-The rain3 target must accommodate its own particles plus copied rain4 particles. Reducing it to two would break the current solution.
+The final `rainCombined` cap is 8 for four scripted particles. No production
+maxParticles reduction was made. A lower cap may change native reserve/capacity
+on some Unity/device combinations, but this is `NOT MEASURED`; no memory or
+frame-time benefit is claimed.
 
-Lower maxParticles may reduce native reserve/capacity and definitely shrinks consolidator managed arrays. At these tiny live counts it is unlikely to improve frame time materially; use Memory Profiler to measure native and managed deltas.
+## 11. TASK2_BUILD_B_HISTORICAL_DEEP_DIVE
 
-## 11. TASK2_CONSOLIDATOR_DEEP_DIVE
+The following section documents the superseded Build B helper for historical
+reasoning only. It does not describe the current final architecture and is not
+a production dependency.
 
 ### Exact buffers and managed memory
 
@@ -417,16 +432,21 @@ If emission, lifetime, simulation space, transforms, delayed bursts, material, r
 | Design | Rain draws | Simulations | Copy APIs | Managed buffer | Correctness/maintenance |
 |---|---:|---:|---|---:|---|
 | A: Original two systems | 2 | 2 | None | None | Low risk, easiest editing |
-| B: Current helper | 1 | 2 | Get source + Get target + Set target once/replay | ~0.76 MiB total | Medium-high assumptions |
-| C: One authored system | 1 | 1 | None | None | Authoring equivalence must be proven |
+| B: Historical helper | 1 | 2 | Get source + Get target + Set target once/replay | ~0.76 MiB total | Medium-high assumptions; superseded |
+| C: Promoted final | 1 | 1 | None | None | Deterministic replay validated; Android impact not measured |
 
-### Consolidator verdict
+### Historical Build B verdict
 
-The helper is competent for the exact current burst but weak as a production optimization. It saves one four-quad submission, with no Batch, SetPass, geometry, or simulation reduction, while adding memory, API copying, lifecycle assumptions, and maintenance risk. Keep it only provisionally until Android A/B/C testing is complete.
+The helper was competent for the exact historical burst but weak as a
+production optimization. It saved one four-quad submission while adding
+calculated buffer payload, API copying, lifecycle assumptions, and maintenance
+risk. Build B was superseded by the promoted one-system `rainCombined` /
+`DeterministicRainEmitter` architecture. No Android performance conclusion was
+made from Build B.
 
 ## 12. TASK2_AUTHOR_TIME_CONSOLIDATION_RESEARCH
 
-Current rain construction:
+Historical Build A rain construction:
 
 - rain3 at `(+2,-1.55)`, Circle Shape radius 0.88, 30-degree arc, shape rotation -15 degrees.
 - rain4 at `(-2,-1.55)`, same shape, rotation -195 degrees.
@@ -445,27 +465,34 @@ A standard ParticleSystem Burst cannot carry a separate shape/position, so two d
 7. Test Mesh Spawn loop/burst-spread modes for balanced two-per-side output.
 8. Compare deterministic fixed-phase frames and particle counts against Build A.
 
-This removes one simulation, both helpers, all managed buffers, and all Get/SetParticles calls.
+The promoted Build C architecture removes one simulation, both historical
+helpers, their managed buffers, and all `GetParticles`/`SetParticles` calls.
 
 Risk: mesh vertex selection may not guarantee exactly two particles per side. A dense balanced mesh can preserve distribution statistically, not necessarily bit-for-bit.
 
 ### Other alternatives
 
 - A centered Circle/Edge/Box shape is simpler but likely permits central emissions or wrong direction; visual risk is high.
-- One ParticleSystem plus four explicit `EmitParams` calls can guarantee two positions/directions per side. It still uses runtime code, but needs one simulation, one renderer, no native-to-managed copying, and no large buffers. It is simpler than the current helper.
+- One ParticleSystem plus four explicit `EmitParams` calls can guarantee two positions/directions per side. It still uses runtime code, but needs one simulation, one renderer, no native-to-managed copying, and no large buffers. This was the simpler alternative selected for the promoted final architecture.
 
-Conclusion: a one-system visual equivalent is likely achievable. Exact stock-module equivalence is not guaranteed and must be measured rather than assumed.
+Conclusion: the one-system architecture was implemented with explicit
+`EmitParams` replay and then validated in the promoted final evidence. The
+fixed-seed replay and supplied rain visual/counter evidence are `MEASURED`;
+Android GPU, frame-time, and full all-effect visual equivalence remain
+`NOT MEASURED`.
 
 ## 13. TASK2_ADDITIONAL_OPTIMIZATION_CANDIDATES
 
 All rows below are **NEW RESEARCH CANDIDATE** items, not implemented results.
+Impact, confidence, and expected-impact wording in this section is
+`EXPECTED` hypothesis language only; candidate benefits are `NOT MEASURED`.
 
 | Candidate | Exact evidence / why relevant | Cost category | Impact / confidence | Measure before / tool | Controlled experiment | Visual risk / complexity | Recommendation |
 |---|---|---|---|---|---|---|---|
-| One authored rain system | Current design retains two simulations and ~0.76 MiB buffers for one draw | Submission, CPU, memory | Medium / High | Draws, ParticleSystem.Update, helper time, memory; Profiler/Memory Profiler | Mesh Shape or EmitParams Build C vs A/B | Medium / Medium | **A - Test now** |
-| Tight rain/helper capacities | max 1000 vs burst 2; arrays directly scale from max | Memory, initialization | Medium memory; Low FPS / High | Managed/native snapshots | rain3 6, rain4 3; 100 replays | Low-medium correctness / Low | **A** |
+| One authored rain system | Historical Build B retained two simulations and calculated helper buffers; the promoted final already uses one `rainCombined` system | Submission, CPU, memory | Final submission result measured; mobile CPU/memory impact `NOT MEASURED` | Draws, `ParticleSystem.Update`, device time, memory; Profiler/Memory Profiler | Historical A/B/C comparison | Medium / Medium | **FINAL; no further production change** |
+| Tight rain capacities | Final `rainCombined` is max 8 versus four scripted particles | Memory, initialization | `EXPECTED` possible capacity cleanup; benefit `NOT MEASURED` | Managed/native snapshots | Isolated maxParticles A/B | Low-medium correctness / Low | **BLOCKED** |
 | MVD 0.5/0.6 tiers | 0.4 already cut geometry | GPU vertex, bandwidth, trail CPU | Low-medium / Medium | Phase geometry/GPU time | 0.4/0.5/0.6 same seeds | Medium / Low | **A** |
-| Shorter lines trail lifetime | Current 0.5x retains segments | Vertex, fragment, bandwidth | Medium / Medium | Geometry, coverage, GPU time | 0.5 -> 0.4 -> 0.3, MVD fixed | High / Low | **B - Android** |
+| Shorter lines trail lifetime | Final PL3 lines use 0.5x; overdraw pilot proposes 0.35 | Vertex, fragment, bandwidth | `EXPECTED` possible coverage change; benefit `NOT MEASURED` | Geometry, coverage, GPU time | 0.5 -> 0.35, MVD fixed | High / Low | **BLOCKED — RUNTIME VALIDATION UNAVAILABLE** |
 | Remove ineffective rate 0.1 | Duration 1.0/0.2s; burst supplies visible count | CPU, correctness | Low / Medium | Count emitted particles | Rate 0.1 -> 0, same seed/image | Low / Trivial | **A** |
 | Low-end density tier | PL3 lines 6, triangle 7, Transition zaps 40 total | CPU, vertex, fragment | Medium on low-end / Medium | Device frame/GPU/overdraw | Reduce one emitter 15-25% | High / Low | **B** |
 | Central coverage reduction | Additive center layers overlap | GPU fragment | Medium if fill-bound / Low | AGI/RenderDoc fragment cost | Scale diagnostic builds -10/-20% | High / Low | **B** |
@@ -481,8 +508,8 @@ All rows below are **NEW RESEARCH CANDIDATE** items, not implemented results.
 ### Build matrix
 
 - **Build A:** original `OptimizeBefore` scene and imported prefab.
-- **Build B:** current `OptimizeAfter` scene and consolidator.
-- **Build C:** best one-system rain alternative.
+- **Build B:** historical helper-based rain experiment; superseded and not in the current tree.
+- **Build C:** promoted one-system `rainCombined` plus `DeterministicRainEmitter` in `OptimizeAfter`.
 
 The project has automatic Android graphics APIs containing Vulkan and OpenGL ES 3. Pin one API for primary A/B/C comparison. If shipping remains automatic, repeat on both APIs.
 
@@ -507,8 +534,8 @@ Use a Development Build with Autoconnect Profiler and no Deep Profiling for fina
 
 - Main Thread and Render Thread frame time.
 - `ParticleSystem.Update`.
-- `ParticleSystemRendererConsolidator.LateUpdate`.
-- `ParticleSystem.GetParticles` and `SetParticles`.
+- Historical Build B `ParticleSystemRendererConsolidator.LateUpdate`.
+- Historical Build B `ParticleSystem.GetParticles` and `SetParticles`.
 - Replay/reset cost.
 - GC.Alloc/collections.
 - First-play array allocation and later replay spikes.
@@ -524,7 +551,7 @@ Add explicit ProfilerMarkers around transfer and replay phases in a future instr
 
 ### Memory
 
-Take Memory Profiler snapshots before first effect, immediately after first effect, and after 30 replays. Compare managed heap, consolidator arrays, native ParticleSystem memory, graphics texture memory, and growth/stale particles.
+Take Memory Profiler snapshots before first effect, immediately after first effect, and after 30 replays. Compare managed heap, native ParticleSystem memory, graphics texture memory, and growth/stale particles. Historical consolidator arrays are already absent from the final architecture; their 800,000-byte payload is `CALCULATED`, not a runtime memory measurement.
 
 ### Frame statistics and visual correctness
 
@@ -547,10 +574,13 @@ Take Memory Profiler snapshots before first effect, immediately after first effe
 
 ## 15. TASK2_PRIORITIZED_BACKLOG
 
+The backlog is planning evidence, not production measurement. Its impact and
+confidence fields are `EXPECTED` hypotheses unless a separate result is named.
+
 | Priority | Optimization | Evidence | Cost Target | Expected Impact | Confidence | Measurement Needed | Risk | Recommendation |
 |---:|---|---|---|---|---|---|---|---|
 | 0 | Android A/B/C profiling | All final evidence is Editor-only | CPU/GPU/submission/memory | High decision value | High | Complete device suite and percentiles | Low | **MUST INVESTIGATE** |
-| 1 | Replace helper with one authored rain system | Two simulations and ~0.76 MiB buffers save one small draw | Submission, CPU, memory | Medium | High | Build C vs A/B | Medium visual | **MUST INVESTIGATE** |
+| 1 | Historical helper replaced by promoted one-system rain | Build C removed the duplicate simulation and calculated helper buffers; one rain Draw Call is measured | Submission; CPU/memory impact `NOT MEASURED` | Final architecture retained | High | Android A/B/C if mobile impact is needed | Medium visual | **FINAL; no new production change** |
 | 2 | Measure transparent overdraw/fill rate | Additive center layers/trails; no GPU evidence | Fragment, bandwidth | Medium if GPU-bound | Medium | AGI/RenderDoc/GPU Profiler | Low diagnostic | **MUST INVESTIGATE** |
 | 3 | MVD 0.5/0.6 and trail-lifetime tiers | 0.4 produced large geometry reduction | Vertex, trail CPU, bandwidth | Low-medium | Medium | Same-phase geometry/GPU/visual | Medium | **GOOD EXPERIMENT** |
 | 4 | Tighten rain capacities/helper buffers | 1000-capacity arrays copy two particles | Memory | Medium memory, Low frame | High | Managed/native snapshots | Low-medium | **GOOD EXPERIMENT** |
@@ -564,9 +594,14 @@ Take Memory Profiler snapshots before first effect, immediately after first effe
 
 ## 16. TASK2_FINAL_TECHNICAL_VERDICT
 
-The trail MVD change is the strongest final optimization. It targets the actual heaviest geometry source, produces a large absolute PL3 geometry reduction, adds no runtime code or memory, and honestly leaves draw state unchanged.
+The trail MVD change is the strongest final optimization. It targets the actual heaviest geometry source, produces a large absolute PL3 geometry reduction, adds no runtime code or memory, and leaves the measured draw state unchanged.
 
-Rain consolidation is a real submission reduction, but its absolute saving is one draw containing four quads. It does not improve Batches, SetPass, geometry, or simulation count. Its two helpers add approximately 0.76 MiB managed payload, Get/SetParticles copying, lifecycle assumptions, and maintenance risk. It should be described as a provisional experiment pending device A/B/C validation, not an unqualified production win.
+The promoted rain architecture is a measured submission reduction from two
+rain Draw Calls to one measured rain Draw Call containing four quads. The live
+rain geometry remained 16 vertices/24 indices/8 triangles. The final architecture
+also removes the duplicate rain simulation and historical helper buffers, but
+Android CPU, GPU, frame-time, native-memory, fill-rate, and thermal effects are
+`NOT MEASURED`; no mobile performance improvement is claimed.
 
 The Task 2 branch meets the structural home-test deliverables well: untouched baseline, separate optimized prefab, paired scenes, deterministic benchmark, final evidence, rejected experiments, and documented learnings. It does not yet prove mobile optimization or 60 FPS because no Android CPU, GPU, frame-time, memory, or thermal evidence exists.
 
@@ -574,14 +609,14 @@ The Task 2 branch meets the structural home-test deliverables well: untouched ba
 
 ### 1. What are the 3 strongest optimizations already implemented?
 
-1. `lines` MVD 0.2 -> 0.4, especially PL3's 410 -> 224 triangles and 460 -> 274 vertices.
-2. PL2/PL3 rain renderer consolidation, which removes one verified submission while preserving 16 vertices/24 indices.
-3. `transferComplete`, which removes about 98% of repeated source reads in the documented five-replay Editor test.
+1. `lines` MVD 0.2 -> 0.4, especially PL3's 410 -> 224 triangles and 460 -> 274 vertices (`MEASURED`).
+2. Promoted PL2/PL3 one-system rain architecture, with two rain Draw Calls reduced to one measured rain Draw Call while preserving 16 vertices/24 indices (`MEASURED`).
+3. Deterministic direct emission into `rainCombined`, validated for fixed/general replay counts and zero recurring allocation in warmed tests (`MEASURED`); no Android performance result is implied.
 
 ### 2. What are the 3 weakest / least justified optimizations?
 
-1. The consolidator as an overall production strategy: large relative complexity/memory for one tiny draw.
-2. The transfer guard: useful, but it optimizes overhead created by the consolidator rather than the imported effect.
+1. Historical Build B consolidator as an overall production strategy: large relative complexity/memory for one tiny draw.
+2. Historical Build B transfer guard: useful for that helper, but it optimized overhead created by the helper rather than the imported effect.
 3. PL1/PL2 MVD generalization: valid counter reductions, but small absolute workloads and no frame-time evidence.
 
 ### 3. What are the top 5 optimization experiments to try next?
@@ -592,9 +627,12 @@ The Task 2 branch meets the structural home-test deliverables well: untouched ba
 4. MVD 0.5/0.6 and controlled trail-lifetime tiers.
 5. Tight rain maxParticles/helper buffers with managed/native memory snapshots.
 
-### 4. Is ParticleSystemRendererConsolidator worth keeping?
+### 4. What is the status of ParticleSystemRendererConsolidator?
 
-Provisionally only. Keep it until Build B is compared with A and C on Android. Remove it if one authored system is visually acceptable or if the saved draw does not produce a meaningful device benefit.
+It is not part of the final tree. Build B was superseded by the promoted
+`rainCombined` / `DeterministicRainEmitter` architecture. Its historical
+800,000-byte helper payload is `CALCULATED`; runtime memory benefit and Android
+performance impact are `NOT MEASURED`.
 
 ### 5. Can its result be achieved more simply at authoring time?
 
@@ -624,10 +662,10 @@ Probably. A Mesh Shape can encode the two emission regions/directions in one Par
 | Priority | Optimization | Evidence | Cost Target | Expected Impact | Confidence | Measurement Needed | Risk | Recommendation |
 |---:|---|---|---|---|---|---|---|---|
 | 0 | Android A/B/C validation | No device evidence exists | All | High decision value | High | Full Android CPU/GPU/memory/percentiles | Low | MUST INVESTIGATE |
-| 1 | Author-time rain consolidation | Current helper saves one draw with two simulations and ~0.76 MiB buffers | Submission/CPU/memory | Medium | High | A/B/C device and visual comparison | Medium | MUST INVESTIGATE |
+| 1 | Android validation of promoted rain architecture | One rain Draw Call and deterministic replay are measured; device impact is absent | CPU/GPU/memory/frame time | Decision value remains high | High | Android A/B against untouched baseline | Medium visual | MUST INVESTIGATE |
 | 2 | Transparent overdraw measurement | Multiple additive layers/trails, unmeasured | Fragment/bandwidth | Medium if bound | Medium | AGI/RenderDoc/GPU Profiler | Low diagnostic | MUST INVESTIGATE |
 | 3 | Trail MVD/lifetime quality tiers | MVD 0.4 already reduced geometry materially | Vertex/fragment/trail CPU | Low-medium | Medium | Phase-matched device geometry/GPU/visual | Medium | GOOD EXPERIMENT |
-| 4 | Tight maxParticles/helper buffers | 1000 capacities versus 2-20 live particles | Memory | Medium memory; Low FPS | High | Memory Profiler snapshots and replay | Low-medium | GOOD EXPERIMENT |
+| 4 | Tight maxParticles capacities | Final serialized caps versus configuration-derived peaks; runtime pilot blocked | Memory | `EXPECTED` possible capacity cleanup; performance `NOT MEASURED` | High | Unity 2022.3 Memory Profiler and replay | Low-medium | BLOCKED |
 | 5 | Remove ineffective rate emission | 0.1/s on 0.2-1.0s effects | CPU/correctness | Low | Medium | Emitted count and image comparison | Low | GOOD EXPERIMENT |
 | 6 | Low-end particle-density tier | Small but overlapping additive bursts/trails | CPU/GPU | Medium on low-end | Medium | Device A/B and visual gate | High | OPTIONAL |
 | 7 | Minimal Standard Unlit shader | Features disabled; absolute coverage small | Shader/fragment | Low | Medium | Shader-stage GPU evidence | Medium | CONDITIONAL |
